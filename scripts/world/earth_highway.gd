@@ -147,16 +147,10 @@ func _start_night() -> void:
 	_transition_sky(COLOR_SKY_NIGHT, 3.0)
 
 func _night_pack_size() -> int:
-	var day: int = GameState.day_number
-	if day >= 7: return 5
-	if day >= 4: return 4
-	return NIGHT_PACK_SIZE
+	return 1
 
 func _night_pack_interval() -> float:
-	var day: int = GameState.day_number
-	if day >= 7: return 2.5
-	if day >= 4: return 3.0
-	return NIGHT_PACK_INTERVAL
+	return maxf(0.8, 4.5 - float(GameState.day_number) * 0.3)
 
 func _process_night(delta: float) -> void:
 	# Early dawn: field cleared before all spawns finished

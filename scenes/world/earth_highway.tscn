@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/earth_highway.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -13,6 +13,9 @@
 [ext_resource type="PackedScene" path="res://scenes/world/tower.tscn" id="11"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_LeftWall"]
+size = Vector2(4, 400)
 
 [node name="EarthHighway" type="Node2D"]
 script = ExtResource("1")
@@ -36,7 +39,7 @@ shape = SubResource("WorldBoundaryShape2D_1")
 
 [node name="GroundVisual" type="ColorRect" parent="Ground"]
 offset_left = -500.0
-offset_right = 1500.0
+offset_right = 2400.0
 offset_bottom = 300.0
 color = Color(0.22, 0.16, 0.10, 1)
 
@@ -49,7 +52,13 @@ offset_bottom = 18.0
 color = Color(1.0, 0.92, 0.50, 1.0)
 
 [node name="SpawnRight" type="Marker2D" parent="."]
-position = Vector2(640, 135)
+position = Vector2(1100, 135)
+
+[node name="LeftWall" type="StaticBody2D" parent="."]
+position = Vector2(-380, -50)
+
+[node name="LeftWallShape" type="CollisionShape2D" parent="LeftWall"]
+shape = SubResource("RectangleShape2D_LeftWall")
 
 [node name="Encampment" parent="." instance=ExtResource("8")]
 position = Vector2(-100, 148)

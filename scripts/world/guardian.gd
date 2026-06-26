@@ -186,16 +186,15 @@ func _check_recruit_prompt() -> void:
 	if not _player:
 		return
 	var near: bool = global_position.distance_to(_player.global_position) < RECRUIT_RANGE
-	if near and not _prompt_showing:
+	var closest: bool = near and _is_closest_dormant_frame()
+	if closest and not _prompt_showing:
 		_prompt_showing = true
 		GameState.show_action_prompt(self, "[ SPACE ]  Reactivate Frame  —  %d ◈" % RECRUIT_COST, 11)
-	elif not near and _prompt_showing:
+	elif not closest and _prompt_showing:
 		_prompt_showing = false
 		GameState.hide_action_prompt(self)
-	if near and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
-		# Only the closest dormant frame to the player responds to prevent double-recruit
-		if _is_closest_dormant_frame():
-			_recruit()
+	if closest and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+		_recruit()
 
 func _is_closest_dormant_frame() -> bool:
 	if not _player:

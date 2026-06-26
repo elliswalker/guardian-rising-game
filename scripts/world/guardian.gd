@@ -384,8 +384,7 @@ func _resume_after_flee() -> void:
 		elif _tower and is_instance_valid(_tower):
 			state = State.SEEKING_TOWER
 		else:
-			# Hold the current position rather than marching back to the front
-			state = State.DEFENDING
+			_start_repositioning()
 	elif is_in_group("sweeperbots"):
 		state = State.SWEEPING
 	else:
@@ -395,19 +394,11 @@ func _resume_after_flee() -> void:
 # ── Wall integrity scan (defending redjacks) ───────────────────────────────────
 
 func _check_wall_behind() -> void:
-	var walls: Array[Node] = get_tree().get_nodes_in_group("walls")
-	if walls.is_empty():
+	if get_tree().get_nodes_in_group("walls").is_empty():
 		return  # last stand at encampment, stay put
-	# Find the outermost (rightmost) wall — defender should always be there
-	var furthest_x: float = -INF
-	for wall: Node in walls:
-		var wn: Node2D = wall as Node2D
-		if wn and is_instance_valid(wn):
-			furthest_x = maxf(furthest_x, wn.global_position.x)
-	var diff: float = furthest_x - global_position.x
-	if diff >= 5.0 and diff <= 25.0:
-		return  # properly stationed at outermost wall
-	# Outermost wall changed (fell or new one built further out) — reposition
+	var target_x: float = _get_defend_target_x()
+	if abs(global_position.x - target_x) <= 15.0:
+		return  # properly stationed
 	_start_repositioning()
 
 # ── Seek job post ─────────────────────────────────────────────────────────────
@@ -773,34 +764,29 @@ func _on_wave_changed(wave: int) -> void:
 	if wave >= 1 and (state == State.PATROL or state == State.ENGAGE):
 		_start_repositioning()
 
+func _get_defend_target_x() -> float:
+	var walls: Array[Node] = get_tree().get_nodes_in_group("walls")
+	var sorted: Array[Node2D] = []
+	for wall: Node in walls:
+		var wn: Node2D = wall as Node2D
+		if wn and is_instance_valid(wn):
+			sorted.append(wn)
+	if sorted.is_empty():
+		return 120.0
+	sorted.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.x > b.global_position.x)
+	var target: Node2D = sorted[0]
+	var outer_hp: Variant = target.get("_hp")
+	if outer_hp != null and int(outer_hp) <= 1 and sorted.size() > 1:
+		target = sorted[1]
+	return target.global_position.x - 10.0
+
 func _start_repositioning() -> void:
 	_target_enemy = null
-	var furthest_x: float = -INF
-	var furthest_wall: Node2D = null
-	for wall: Node in get_tree().get_nodes_in_group("walls"):
-		var wn: Node2D = wall as Node2D
-		if wn and wn.global_position.x > furthest_x:
-			furthest_x = wn.global_position.x
-			furthest_wall = wn
-	if furthest_wall:
-		_wall_target_pos = furthest_wall.global_position + Vector2(-10.0, 0.0)
-		state = State.REPOSITIONING
-	else:
-		# No walls: hold a forward position to intercept enemies
-		_wall_target_pos = Vector2(120.0, global_position.y)
-		state = State.REPOSITIONING
+	_wall_target_pos = Vector2(_get_defend_target_x(), global_position.y)
+	state = State.REPOSITIONING
 
 func _do_reposition(_delta: float) -> void:
-	# Keep target up-to-date — walls can be built or destroyed while walking
-	var walls: Array[Node] = get_tree().get_nodes_in_group("walls")
-	if not walls.is_empty():
-		var furthest_x: float = -INF
-		for wall: Node in walls:
-			var wn: Node2D = wall as Node2D
-			if wn and is_instance_valid(wn):
-				furthest_x = maxf(furthest_x, wn.global_position.x)
-		if furthest_x > -INF:
-			_wall_target_pos.x = furthest_x - 10.0
+	_wall_target_pos.x = _get_defend_target_x()
 	if abs(global_position.x - _wall_target_pos.x) < 3.0:
 		velocity.x = 0.0
 		_guard_scan_timer = GUARD_SCAN_INTERVAL

@@ -70,11 +70,7 @@ func _on_wave_changed(wave: int) -> void:
 	_wave_tween.tween_interval(2.5)
 	_wave_tween.tween_property(wave_label, "modulate:a", 0.0, 0.8)
 
-func _faction_for_wave(wave: int) -> String:
-	match wave % 3:
-		1: return "fallen"
-		2: return "hive"
-		0: return "cabal"
+func _faction_for_wave(_wave: int) -> String:
 	return "fallen"
 
 func _on_dusk_timer_updated(seconds: int) -> void:

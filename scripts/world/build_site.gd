@@ -94,9 +94,8 @@ func is_complete() -> bool:
 func _update_visual() -> void:
 	var pulse: float = 0.6 + sin(_pulse_time * 2.2) * 0.4
 	if not _actioned:
-		# Waiting for player to commission — dim and grey
-		_site_sprite.modulate = Color(0.55, 0.55, 0.55, pulse * 0.3)
-		_glow.modulate.a = 0.05
+		_site_sprite.modulate = Color(1.0, 1.0, 1.0, 0.45 + pulse * 0.4)
+		_glow.modulate.a = 0.3
 		return
 	match _progress:
 		0:

@@ -230,23 +230,15 @@ func _spawn_day_dregs() -> void:
 
 func _spawn_dreg_pack(count: int) -> void:
 	var day: int = GameState.day_number
-	var faction: int = day % 3  # 1=fallen, 2=hive, 0=cabal
 	for i in count:
 		var spawn_pos: Vector2 = spawn_point_right.global_position + Vector2(float(i) * 16.0, 0.0)
-		var enemy: CharacterBody2D = _pick_enemy(faction, day).instantiate()
+		var enemy: CharacterBody2D = _pick_fallen_enemy(day).instantiate()
 		enemy.global_position = spawn_pos
 		add_child(enemy)
 
-func _pick_enemy(faction: int, day: int) -> PackedScene:
-	match faction:
-		1:  # Fallen
-			if day >= 4 and randf() < 0.4:
-				return VANDAL_SCENE
-			return DREG_SCENE
-		2:  # Hive
-			return THRALL_SCENE
-		0:  # Cabal
-			return LEGIONARY_SCENE
+func _pick_fallen_enemy(day: int) -> PackedScene:
+	if day >= 4 and randf() < 0.4:
+		return VANDAL_SCENE
 	return DREG_SCENE
 
 func _spawn_initial_caches() -> void:

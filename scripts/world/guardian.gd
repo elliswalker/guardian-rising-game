@@ -324,7 +324,7 @@ func _is_blocked_by_wall(enemy_x: float) -> bool:
 	var hi: float = maxf(global_position.x, enemy_x)
 	for wall: Node in get_tree().get_nodes_in_group("walls"):
 		var wn: Node2D = wall as Node2D
-		if wn and is_instance_valid(wn) and wn.global_position.x > lo and wn.global_position.x < hi:
+		if wn and is_instance_valid(wn) and wn.global_position.x >= lo - 2.0 and wn.global_position.x < hi:
 			return true
 	return false
 

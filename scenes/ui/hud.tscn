@@ -1,0 +1,82 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/ghost_icon.gd" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/ui/wave_alert.tscn" id="3"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="HUDBackground" type="ColorRect" parent="."]
+anchor_right = 1.0
+offset_bottom = 46.0
+grow_horizontal = 2
+color = Color(0.055, 0.055, 0.082, 0.93)
+
+[node name="HUDBorder" type="ColorRect" parent="."]
+anchor_right = 1.0
+offset_top = 44.0
+offset_bottom = 46.0
+grow_horizontal = 2
+color = Color(0.145, 0.145, 0.208, 1.0)
+
+[node name="GlimmerLabel" type="Label" parent="."]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 234.0
+offset_bottom = 38.0
+text = "◈  0"
+theme_override_font_sizes/font_size = 20
+
+[node name="GhostIcon" type="Control" parent="."]
+script = ExtResource("2")
+offset_left = 604.0
+offset_top = 6.0
+offset_right = 636.0
+offset_bottom = 38.0
+
+[node name="DayLabel" type="Label" parent="."]
+offset_left = 1060.0
+offset_top = 48.0
+offset_right = 1270.0
+offset_bottom = 68.0
+modulate = Color(0.69, 0.659, 0.596, 0.0)
+text = "Day I"
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 13
+
+[node name="WaveLabel" type="Label" parent="."]
+offset_left = 220.0
+offset_top = 48.0
+offset_right = 1060.0
+offset_bottom = 72.0
+modulate = Color(0.941, 0.816, 0.376, 0.0)
+text = "WAVE 1"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+
+[node name="DuskLabel" type="Label" parent="."]
+offset_left = 320.0
+offset_top = 72.0
+offset_right = 960.0
+offset_bottom = 94.0
+modulate = Color(0.85, 0.78, 0.55, 0.0)
+text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+
+[node name="ActionPrompt" type="Label" parent="."]
+offset_left = 40.0
+offset_top = 672.0
+offset_right = 1240.0
+offset_bottom = 712.0
+modulate = Color(0.6, 0.92, 1.0, 0.0)
+text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+
+[node name="WaveAlert" parent="." instance=ExtResource("3")]
+offset_left = 380.0
+offset_top = 48.0
+offset_right = 900.0
+offset_bottom = 120.0

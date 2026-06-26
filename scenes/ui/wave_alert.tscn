@@ -1,0 +1,51 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/wave_alert.gd" id="1"]
+
+[node name="WaveAlert" type="Control"]
+script = ExtResource("1")
+offset_right = 520.0
+offset_bottom = 72.0
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.06, 0.04, 0.92)
+
+[node name="LeftAccent" type="ColorRect" parent="."]
+anchor_bottom = 1.0
+offset_right = 4.0
+color = Color(0.831, 0.584, 0.416, 1.0)
+
+[node name="FactionLabel" type="Label" parent="."]
+offset_left = 16.0
+offset_top = 10.0
+offset_right = 400.0
+offset_bottom = 40.0
+text = "House of Devils"
+theme_override_font_sizes/font_size = 20
+
+[node name="SubtitleLabel" type="Label" parent="."]
+offset_left = 16.0
+offset_top = 44.0
+offset_right = 400.0
+offset_bottom = 64.0
+text = "Fallen · House of Devils"
+theme_override_font_sizes/font_size = 12
+
+[node name="WaveNumber" type="Label" parent="."]
+offset_left = 392.0
+offset_top = 4.0
+offset_right = 512.0
+offset_bottom = 68.0
+text = "01"
+horizontal_alignment = 2
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 40
+
+[node name="PulseBar" type="ColorRect" parent="."]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -4.0
+color = Color(0.831, 0.584, 0.416, 1.0)

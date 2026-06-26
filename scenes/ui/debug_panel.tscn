@@ -1,0 +1,53 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/debug_panel.gd" id="1"]
+
+[node name="DebugPanel" type="CanvasLayer"]
+script = ExtResource("1")
+visible = false
+
+[node name="Panel" type="PanelContainer" parent="."]
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 100.0
+offset_bottom = 90.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 92.0
+offset_bottom = 82.0
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+text = "DEBUG  [F1]"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 6
+
+[node name="Sep" type="HSeparator" parent="Panel/VBox"]
+
+[node name="SpawnDreg" type="Button" parent="Panel/VBox"]
+text = "Spawn Dreg"
+theme_override_font_sizes/font_size = 6
+
+[node name="ForceDusk" type="Button" parent="Panel/VBox"]
+text = "Force Dusk"
+theme_override_font_sizes/font_size = 6
+
+[node name="AddGlimmer" type="Button" parent="Panel/VBox"]
+text = "+ 500 Glimmer"
+theme_override_font_sizes/font_size = 6
+
+[node name="ToggleGhost" type="Button" parent="Panel/VBox"]
+text = "Ghost Invincible: OFF"
+theme_override_font_sizes/font_size = 6
+
+[node name="KillAll" type="Button" parent="Panel/VBox"]
+text = "Kill All Enemies"
+theme_override_font_sizes/font_size = 6
+
+[connection signal="pressed" from="Panel/VBox/SpawnDreg" to="." method="_on_spawn_dreg_pressed"]
+[connection signal="pressed" from="Panel/VBox/ForceDusk" to="." method="_on_force_dusk_pressed"]
+[connection signal="pressed" from="Panel/VBox/AddGlimmer" to="." method="_on_add_glimmer_pressed"]
+[connection signal="pressed" from="Panel/VBox/ToggleGhost" to="." method="_on_toggle_ghost_pressed"]
+[connection signal="pressed" from="Panel/VBox/KillAll" to="." method="_on_kill_all_pressed"]

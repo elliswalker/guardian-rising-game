@@ -1,0 +1,26 @@
+# Godot 4 generated cache — never commit this
+.godot/
+
+# Editor crash-recovery backups
+*.tmp.*
+
+# Exported builds
+builds/
+export/
+*.pck
+*.zip
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Source art (keep exported PNGs, ignore source files)
+*.psd
+*.aseprite
+*.ase
+*.xcf
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,280 @@
+extends CharacterBody2D
+
+enum DregState {
+	WANDERING,     # daytime — scavenging the field; flee when hit
+	HIT_FLEE,      # briefly sprint right after being hit during day
+	FERAL,         # night-wave mode — rush walls, chase ghost
+	CARRYING_GHOST,# has the ghost; escape right
+	RETREATING,    # dawn — flee off screen right
+}
+
+const MOVE_SPEED          := 14.0
+const WANDER_SPEED        := 6.5
+const HIT_FLEE_SPEED      := 28.0
+const HIT_FLEE_DURATION   := 3.0
+const GRAVITY             := 225.0
+const GLIMMER_DROP        := 5
+const GHOST_AGGRO_RANGE   := 80.0
+const GHOST_CAPTURE_RANGE := 13.0
+const FRAME_DETECT_RANGE  := 50.0
+const FRAME_ATTACK_RANGE  := 18.0
+const WALL_ATTACK_COOLDOWN := 2.5
+const RETREAT_SPEED       := 22.0
+const RETREAT_EXIT_X      := 850.0
+const GLIMMER_STEAL_RANGE := 16.0
+const RETARGET_INTERVAL   := 0.25
+const WANDER_CHANGE_INTERVAL_MIN := 1.8
+const WANDER_CHANGE_INTERVAL_MAX := 4.5
+const WANDER_LEFT_BOUND   := 290.0   # dregs won't cross this during day
+const WANDER_RIGHT_BOUND  := 800.0
+# Frames left of this x are inside the encampment — protected from enemies
+const SAFE_ZONE_X         := -50.0
+
+const COLOR_DEFAULT  := Color.WHITE
+const COLOR_CARRYING := Color(0.7, 0.15, 0.8, 1)
+const COLOR_HIT      := Color(1.0, 0.15, 0.0, 1)
+const COLOR_TETHERED := Color(0.70, 0.45, 1.0, 1.0)
+
+@onready var _sprite: CanvasItem = $DregSprite
+
+# Set to false before add_child to spawn as a daytime wanderer instead of a night attacker
+var _start_feral: bool = true
+
+var _dreg_state: DregState = DregState.FERAL
+var _ghost: Node2D = null
+var _frame_target: Node2D = null
+var _is_dying: bool = false
+var _wall_attack_timer: float = 0.0
+var _retarget_timer: float = 0.0
+var _wander_dir: float = 1.0
+var _wander_timer: float = 0.0
+var _hit_flee_timer: float = 0.0
+var _tether_timer: float = 0.0
+
+func _ready() -> void:
+	add_to_group("enemies")
+	collision_layer = 32
+	collision_mask = 7   # ground(1) + walls(2) + towers(4)
+	_wall_attack_timer = randf() * WALL_ATTACK_COOLDOWN
+	_ghost = get_tree().get_first_node_in_group("ghost")
+	if _start_feral:
+		_dreg_state = DregState.FERAL
+	else:
+		_dreg_state = DregState.WANDERING
+		_wander_dir = [-1.0, 1.0][randi() % 2]
+		_wander_timer = randf_range(WANDER_CHANGE_INTERVAL_MIN, WANDER_CHANGE_INTERVAL_MAX)
+	GameState.dusk_triggered.connect(_on_dusk_triggered)
+	GameState.dawn_triggered.connect(_on_dawn_triggered)
+
+func _on_dusk_triggered(_day: int) -> void:
+	if _dreg_state == DregState.WANDERING or _dreg_state == DregState.HIT_FLEE:
+		_dreg_state = DregState.FERAL
+
+func _on_dawn_triggered(_day: int) -> void:
+	retreat()
+
+# Called by earth_highway at dawn
+func retreat() -> void:
+	if _is_dying or _dreg_state == DregState.RETREATING:
+		return
+	if _dreg_state == DregState.CARRYING_GHOST:
+		if _ghost and is_instance_valid(_ghost) and _ghost.carrier == self:
+			_ghost.release()
+	_dreg_state = DregState.RETREATING
+	_sprite.modulate =COLOR_DEFAULT
+
+# Called by Servitor tether
+func apply_tether(duration: float) -> void:
+	_tether_timer = maxf(_tether_timer, duration)
+	_sprite.modulate =COLOR_TETHERED
+
+func _physics_process(delta: float) -> void:
+	if _tether_timer > 0.0:
+		_tether_timer -= delta
+		if _tether_timer <= 0.0:
+			_sprite.modulate =COLOR_DEFAULT
+		velocity = Vector2.ZERO
+		if not is_on_floor():
+			velocity.y += GRAVITY * delta
+		move_and_slide()
+		return
+
+	match _dreg_state:
+		DregState.WANDERING:
+			_process_wandering(delta)
+		DregState.HIT_FLEE:
+			_process_hit_flee(delta)
+		DregState.FERAL:
+			_process_feral(delta)
+		DregState.CARRYING_GHOST:
+			_process_carrying(delta)
+		DregState.RETREATING:
+			_process_retreating(delta)
+
+# ── Wandering (day) ───────────────────────────────────────────────────────────
+
+func _process_wandering(delta: float) -> void:
+	if not is_on_floor():
+		velocity.y += GRAVITY * delta
+	_wander_timer -= delta
+	if _wander_timer <= 0.0:
+		_wander_timer = randf_range(WANDER_CHANGE_INTERVAL_MIN, WANDER_CHANGE_INTERVAL_MAX)
+		_wander_dir = [-1.0, 1.0][randi() % 2]
+	# Bounce off wander bounds
+	if global_position.x <= WANDER_LEFT_BOUND and _wander_dir < 0.0:
+		_wander_dir = 1.0
+	elif global_position.x >= WANDER_RIGHT_BOUND and _wander_dir > 0.0:
+		_wander_dir = -1.0
+	velocity.x = _wander_dir * WANDER_SPEED
+	move_and_slide()
+
+func _process_hit_flee(delta: float) -> void:
+	if not is_on_floor():
+		velocity.y += GRAVITY * delta
+	velocity.x = HIT_FLEE_SPEED
+	move_and_slide()
+	_hit_flee_timer -= delta
+	if _hit_flee_timer <= 0.0:
+		_dreg_state = DregState.WANDERING
+		_wander_dir = -1.0
+		_wander_timer = randf_range(WANDER_CHANGE_INTERVAL_MIN, WANDER_CHANGE_INTERVAL_MAX)
+
+# ── Feral (night attack) ──────────────────────────────────────────────────────
+
+func _process_feral(delta: float) -> void:
+	if not is_on_floor():
+		velocity.y += GRAVITY * delta
+	_retarget_timer -= delta
+	if _retarget_timer <= 0.0:
+		_retarget_timer = RETARGET_INTERVAL
+		_evaluate_feral_targets()
+	_execute_feral_movement()
+	move_and_slide()
+	_wall_attack_timer -= delta
+	if _wall_attack_timer <= 0.0:
+		_process_attacks()
+
+func _evaluate_feral_targets() -> void:
+	_frame_target = null
+	if _ghost and is_instance_valid(_ghost):
+		if global_position.distance_to(_ghost.global_position) < GHOST_AGGRO_RANGE:
+			return  # ghost takes priority; frame_target stays null as signal
+	_frame_target = _find_nearest_working_frame()
+
+func _execute_feral_movement() -> void:
+	if _ghost and is_instance_valid(_ghost):
+		var to_ghost: Vector2 = _ghost.global_position - global_position
+		if global_position.distance_to(_ghost.global_position) < GHOST_AGGRO_RANGE:
+			if abs(to_ghost.x) < GHOST_CAPTURE_RANGE and not _ghost.is_captured:
+				_ghost.capture(self)
+				_dreg_state = DregState.CARRYING_GHOST
+				_sprite.modulate =COLOR_CARRYING
+			else:
+				velocity.x = sign(to_ghost.x) * MOVE_SPEED
+			return
+	if _frame_target and is_instance_valid(_frame_target):
+		var dist: float = global_position.distance_to(_frame_target.global_position)
+		velocity.x = 0.0 if dist <= FRAME_ATTACK_RANGE else sign(_frame_target.global_position.x - global_position.x) * MOVE_SPEED
+		return
+	velocity.x = -MOVE_SPEED
+
+# ── Ghost carrier ─────────────────────────────────────────────────────────────
+
+func _process_carrying(delta: float) -> void:
+	if not is_on_floor():
+		velocity.y += GRAVITY * delta
+	# Verify still holding ghost
+	if not _ghost or not is_instance_valid(_ghost) or not _ghost.is_captured or _ghost.carrier != self:
+		_dreg_state = DregState.FERAL
+		_sprite.modulate =COLOR_DEFAULT
+		return
+	velocity.x = RETREAT_SPEED
+	move_and_slide()
+
+# ── Retreating (dawn) ─────────────────────────────────────────────────────────
+
+func _process_retreating(delta: float) -> void:
+	if not is_on_floor():
+		velocity.y += GRAVITY * delta
+	velocity.x = RETREAT_SPEED
+	move_and_slide()
+	if global_position.x > RETREAT_EXIT_X:
+		queue_free()
+
+# ── Attack resolution ─────────────────────────────────────────────────────────
+
+func _process_attacks() -> void:
+	if _frame_target and is_instance_valid(_frame_target):
+		if global_position.distance_to(_frame_target.global_position) < FRAME_ATTACK_RANGE:
+			if _frame_target.has_method("knocked_dormant"):
+				_frame_target.knocked_dormant()
+			_frame_target = null
+			_wall_attack_timer = WALL_ATTACK_COOLDOWN
+			return
+	for i in get_slide_collision_count():
+		var col: KinematicCollision2D = get_slide_collision(i)
+		var collider := col.get_collider()
+		if collider is Node:
+			var n: Node = collider as Node
+			if n.is_in_group("walls") or n.is_in_group("towers"):
+				if n.has_method("take_damage"):
+					n.take_damage(1)
+					_wall_attack_timer = WALL_ATTACK_COOLDOWN
+				return
+	_try_steal_glimmer()
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+func _find_nearest_working_frame() -> Node2D:
+	var best: Node2D = null
+	var best_dist: float = FRAME_DETECT_RANGE
+	for pass_num in 2:
+		for f: Node in get_tree().get_nodes_in_group("frame_npc"):
+			var fn: Node2D = f as Node2D
+			if not fn or not is_instance_valid(fn):
+				continue
+			if not fn.has_method("is_active_worker") or not fn.call("is_active_worker"):
+				continue
+			if fn.global_position.x < SAFE_ZONE_X:
+				continue
+			if pass_num == 0 and not fn.is_in_group("redjacks"):
+				continue
+			var dist: float = global_position.distance_to(fn.global_position)
+			if dist < best_dist:
+				best_dist = dist
+				best = fn
+		if best:
+			break
+	return best
+
+func _try_steal_glimmer() -> void:
+	for cache: Node in get_tree().get_nodes_in_group("glimmer_caches"):
+		var cn: Node2D = cache as Node2D
+		if cn and is_instance_valid(cn):
+			if global_position.distance_to(cn.global_position) < GLIMMER_STEAL_RANGE:
+				cn.queue_free()
+				return
+
+func take_damage(_amount: int) -> void:
+	if _is_dying or _tether_timer > 0.0:
+		return
+	# Day wanderers: flee instead of die
+	if _dreg_state == DregState.WANDERING:
+		_dreg_state = DregState.HIT_FLEE
+		_hit_flee_timer = HIT_FLEE_DURATION
+		_sprite.modulate =COLOR_HIT
+		var tween: Tween = create_tween()
+		tween.tween_property(_sprite, "modulate", COLOR_DEFAULT, 0.3)
+		return
+	_is_dying = true
+	set_physics_process(false)
+	var tween: Tween = create_tween()
+	tween.tween_property(_sprite, "modulate", COLOR_HIT, 0.0)
+	tween.tween_property(_sprite, "modulate", COLOR_DEFAULT, 0.12)
+	tween.tween_callback(die)
+
+func die() -> void:
+	if _ghost and is_instance_valid(_ghost) and _ghost.carrier == self:
+		_ghost.release()
+	GameState.add_glimmer(GLIMMER_DROP)
+	queue_free()

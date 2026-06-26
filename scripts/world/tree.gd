@@ -37,10 +37,10 @@ func _check_player_proximity() -> void:
 			GameState.show_action_prompt(self, "[ SPACE ]  Mark for Chopping", 10)
 		else:
 			GameState.hide_action_prompt(self)
-	if nearby and Input.is_action_just_pressed("action"):
-		_commission()
+	if nearby and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+		commission()
 
-func _commission() -> void:
+func commission() -> void:
 	_commissioned = true
 	_player_nearby = false
 	GameState.hide_action_prompt(self)

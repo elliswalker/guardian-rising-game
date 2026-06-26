@@ -107,6 +107,9 @@ func hide_action_prompt(owner: Object) -> void:
 		_prompt_text = ""
 		action_prompt_hide.emit()
 
+func is_prompt_owner(caller: Object) -> bool:
+	return _prompt_owner != null and is_instance_valid(_prompt_owner) and _prompt_owner == caller
+
 func new_run() -> void:
 	current_run += 1
 	glimmer = 0

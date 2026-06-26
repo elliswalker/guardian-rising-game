@@ -192,7 +192,7 @@ func _check_recruit_prompt() -> void:
 	elif not near and _prompt_showing:
 		_prompt_showing = false
 		GameState.hide_action_prompt(self)
-	if near and Input.is_action_just_pressed("action"):
+	if near and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 		# Only the closest dormant frame to the player responds to prevent double-recruit
 		if _is_closest_dormant_frame():
 			_recruit()

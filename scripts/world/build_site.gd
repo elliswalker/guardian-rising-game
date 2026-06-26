@@ -36,31 +36,35 @@ func _process(delta: float) -> void:
 	_pulse_time += delta
 	_update_visual()
 	if _player_nearby and not _actioned:
-		var blocked: bool = _has_nearby_tree()
-		# Always re-assert so the prompt recovers after being preempted
-		if blocked:
-			GameState.show_action_prompt(self, "Clear the area first", 5)
+		var blocking: Node2D = _get_blocking_tree()
+		if blocking:
+			GameState.show_action_prompt(self, "[ SPACE ]  Mark Tree  —  Clear Path", 12)
+			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+				blocking.call("commission")
 		else:
-			GameState.show_action_prompt(self, "[ SPACE ]  Build Wall  —  %d ◈" % BUILD_COST, 5)
-		if not blocked and Input.is_action_just_pressed("action"):
-			_action_job()
+			GameState.show_action_prompt(self, "[ SPACE ]  Build Wall  —  %d ◈" % BUILD_COST, 12)
+			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+				_action_job()
 
-func _has_nearby_tree() -> bool:
+func _get_blocking_tree() -> Node2D:
 	for tree: Node in get_tree().get_nodes_in_group("trees"):
 		var tn: Node2D = tree as Node2D
 		if tn and global_position.distance_to(tn.global_position) < 38.0:
 			if not tn.get("_commissioned"):
-				return true
-	return false
+				return tn
+	return null
+
+func _has_nearby_tree() -> bool:
+	return _get_blocking_tree() != null
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
 		_player_nearby = true
 		if not _actioned:
 			if _has_nearby_tree():
-				GameState.show_action_prompt(self, "Clear the area first", 5)
+				GameState.show_action_prompt(self, "[ SPACE ]  Mark Tree  —  Clear Path", 12)
 			else:
-				GameState.show_action_prompt(self, "[ SPACE ]  Build Wall  —  %d ◈" % BUILD_COST, 5)
+				GameState.show_action_prompt(self, "[ SPACE ]  Build Wall  —  %d ◈" % BUILD_COST, 12)
 
 func _on_body_exited(body: Node2D) -> void:
 	if body.is_in_group("player"):

@@ -18,7 +18,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install gdtoolkit
-        run: pip install gdtoolkit4
+        run: pip install "gdtoolkit==4.*"
 
       - name: Lint GDScript
         run: gdlint scripts/

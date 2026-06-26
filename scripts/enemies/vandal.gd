@@ -71,7 +71,8 @@ func _do_feral(delta: float) -> void:
 	_frame_target = _find_nearest_frame()
 	if _frame_target and is_instance_valid(_frame_target):
 		var dist := global_position.distance_to(_frame_target.global_position)
-		velocity.x = 0.0 if dist <= FRAME_ATTACK_RANGE else sign(_frame_target.global_position.x - global_position.x) * MOVE_SPEED
+		var dir: float = sign(_frame_target.global_position.x - global_position.x)
+		velocity.x = 0.0 if dist <= FRAME_ATTACK_RANGE else dir * MOVE_SPEED
 	else:
 		velocity.x = -MOVE_SPEED
 	move_and_slide()

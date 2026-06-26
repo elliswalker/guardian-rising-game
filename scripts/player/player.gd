@@ -20,12 +20,11 @@ var _speed: float:
 	get:
 		if has_ghost:
 			return SPARROW_SPEED
-		elif is_hurt:
+		if is_hurt:
 			return LIMP_SPEED
-		elif _is_running:
+		if _is_running:
 			return RUN_SPEED
-		else:
-			return WALK_SPEED
+		return WALK_SPEED
 
 var _ghost: Node2D = null
 

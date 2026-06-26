@@ -174,7 +174,8 @@ func _execute_feral_movement() -> void:
 			return
 	if _frame_target and is_instance_valid(_frame_target):
 		var dist: float = global_position.distance_to(_frame_target.global_position)
-		velocity.x = 0.0 if dist <= FRAME_ATTACK_RANGE else sign(_frame_target.global_position.x - global_position.x) * MOVE_SPEED
+		var dir: float = sign(_frame_target.global_position.x - global_position.x)
+		velocity.x = 0.0 if dist <= FRAME_ATTACK_RANGE else dir * MOVE_SPEED
 		return
 	velocity.x = -MOVE_SPEED
 

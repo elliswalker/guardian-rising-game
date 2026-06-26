@@ -188,7 +188,7 @@ func _check_recruit_prompt() -> void:
 	var near: bool = global_position.distance_to(_player.global_position) < RECRUIT_RANGE
 	if near and not _prompt_showing:
 		_prompt_showing = true
-		GameState.show_action_prompt(self, "[ SPACE ]  Reactivate Frame  —  %d ◈" % RECRUIT_COST, 8)
+		GameState.show_action_prompt(self, "[ SPACE ]  Reactivate Frame  —  %d ◈" % RECRUIT_COST, 11)
 	elif not near and _prompt_showing:
 		_prompt_showing = false
 		GameState.hide_action_prompt(self)

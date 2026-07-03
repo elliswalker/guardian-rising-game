@@ -26,6 +26,8 @@ const PLAYER_ATTACK_RANGE := 16.0
 const SWIPE_COOLDOWN      := 1.2
 const GHOST_STRAY_DIST    := 40.0
 const CACHE_SCENE         := preload("res://scenes/world/glimmer_cache.tscn")
+const PICKUP_SCENE        := preload("res://scenes/world/pickup.tscn")
+const SHARD_DROP_CHANCE   := 0.15
 
 const COLOR_DEFAULT  := Color.WHITE
 const COLOR_HIT      := Color(1.0, 0.25, 0.1, 1.0)
@@ -237,6 +239,11 @@ func _die() -> void:
 	if _ghost and is_instance_valid(_ghost) and _ghost.is_captured and _ghost.carrier == self:
 		_ghost.release()
 	_drop_loot()  # stolen glimmer falls back to the ground, recoverable
+	if randf() < SHARD_DROP_CHANCE:
+		var shard: Area2D = PICKUP_SCENE.instantiate() as Area2D
+		shard.set("kind", "shard")
+		shard.global_position = Vector2(global_position.x, 145.0)
+		get_parent().call_deferred("add_child", shard)
 	GameState.add_glimmer(GLIMMER_DROP)
 	var tween := create_tween()
 	tween.tween_property(_sprite, "modulate", COLOR_HIT, 0.0)

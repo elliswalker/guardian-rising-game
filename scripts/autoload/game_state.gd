@@ -3,6 +3,8 @@ extends Node
 signal glimmer_changed(new_value: int)
 signal vault_changed(new_value: int)
 signal encampment_upgraded(new_tier: int)
+signal shards_changed(new_value: int)
+signal super_equipped(super_name: String)
 signal ghost_captured
 signal ghost_released
 signal game_over
@@ -41,6 +43,22 @@ var glimmer: int = 0:
 var vaulted_glimmer: int = 0
 # Center-tier ladder: 1=builders, 2=+redjacks, 3=+sweepers/towers, 4=+vault (EP-09)
 var encampment_tier: int = 1
+
+# ── Ghosts & supers (EP-08) ──────────────────────────────────────────────────
+var legendary_shards: int = 0
+var equipped_super: String = ""      # "" until an elemental Ghost is found
+var mote_reduction: float = 0.0      # seconds shaved off the next super cooldown
+
+func add_shard(amount: int = 1) -> void:
+	legendary_shards += amount
+	shards_changed.emit(legendary_shards)
+
+func spend_shards(amount: int) -> bool:
+	if legendary_shards >= amount:
+		legendary_shards -= amount
+		shards_changed.emit(legendary_shards)
+		return true
+	return false
 
 # ── Planets (EP-06/07/14) ────────────────────────────────────────────────────
 var current_planet: String = "earth"
@@ -165,6 +183,10 @@ func new_run() -> void:
 	vaulted_glimmer = 0
 	vault_changed.emit(0)
 	encampment_tier = 1
+	legendary_shards = 0
+	equipped_super = ""
+	mote_reduction = 0.0
+	shards_changed.emit(0)
 	current_planet = "earth"
 	ship_repaired = false
 	stone_unlocked = false

@@ -17,6 +17,7 @@ func _ready() -> void:
 
 	GameState.glimmer_changed.connect(_on_glimmer_changed)
 	GameState.vault_changed.connect(func(_v: int) -> void: _on_glimmer_changed(GameState.glimmer))
+	GameState.shards_changed.connect(func(_s: int) -> void: _on_glimmer_changed(GameState.glimmer))
 	GameState.ghost_captured.connect(_on_ghost_captured)
 	GameState.ghost_released.connect(_on_ghost_released)
 	GameState.wave_changed.connect(_on_wave_changed)
@@ -48,10 +49,12 @@ func _apply_design_tokens() -> void:
 	action_prompt.add_theme_color_override("font_color", DesignTokens.ARC)
 
 func _on_glimmer_changed(value: int) -> void:
+	var text: String = "◈  %d" % value
 	if GameState.vaulted_glimmer > 0:
-		glimmer_label.text = "◈  %d   ⛨ %d" % [value, GameState.vaulted_glimmer]
-	else:
-		glimmer_label.text = "◈  %d" % value
+		text += "   ⛨ %d" % GameState.vaulted_glimmer
+	if GameState.legendary_shards > 0:
+		text += "   ✦ %d" % GameState.legendary_shards
+	glimmer_label.text = text
 
 func _on_ghost_captured() -> void:
 	ghost_icon.is_captured = true

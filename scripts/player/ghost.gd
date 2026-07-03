@@ -7,9 +7,9 @@ const BOB_AMPLITUDE: float = 2.0
 const WARNING_THRESHOLD: float = 0.65
 
 const ABILITY_COOLDOWN := 20.0
-const ABILITY_RANGE    := 160.0
+const ABILITY_COOLDOWN_MIN := 8.0
 
-const SHOCKWAVE_SCENE := preload("res://scenes/world/ability_shockwave.tscn")
+const CALLIN_SCENE := preload("res://scenes/world/cayde_callin.tscn")
 
 signal ability_cooldown_updated(fraction: float)  # 1.0 = ready, 0.0 = just used
 
@@ -29,6 +29,7 @@ var invincible: bool = false
 var _bob_time: float = 0.0
 var _base_offset: Vector2 = Vector2(18.0, -22.0)
 var _ability_cooldown_remaining: float = 0.0
+var _ability_cooldown_total: float = ABILITY_COOLDOWN
 
 func _ready() -> void:
 	add_to_group("ghost")
@@ -54,21 +55,23 @@ func _tick_cooldown(delta: float) -> void:
 	_ability_cooldown_remaining -= delta
 	if _ability_cooldown_remaining <= 0.0:
 		_ability_cooldown_remaining = 0.0
-	ability_cooldown_updated.emit(1.0 - _ability_cooldown_remaining / ABILITY_COOLDOWN)
+	ability_cooldown_updated.emit(1.0 - _ability_cooldown_remaining / _ability_cooldown_total)
 
+# The Speaker doesn't fight (Kingdom rule) — supers are named Guardians
+# answering the call. No elemental Ghost bonded yet = no super at all.
 func use_ability() -> void:
 	if _ability_cooldown_remaining > 0.0 or is_captured:
 		return
-	_ability_cooldown_remaining = ABILITY_COOLDOWN
+	if GameState.equipped_super == "":
+		return
+	# Motes of Light collected since the last super shorten this cooldown
+	_ability_cooldown_total = maxf(ABILITY_COOLDOWN - GameState.mote_reduction, ABILITY_COOLDOWN_MIN)
+	GameState.mote_reduction = 0.0
+	_ability_cooldown_remaining = _ability_cooldown_total
 	ability_cooldown_updated.emit(0.0)
-	for enemy: Node in get_tree().get_nodes_in_group("enemies"):
-		var en := enemy as Node2D
-		if en and is_instance_valid(en) and en.has_method("take_damage"):
-			if global_position.distance_to(en.global_position) <= ABILITY_RANGE:
-				en.take_damage(99)
-	var wave: Node2D = SHOCKWAVE_SCENE.instantiate() as Node2D
-	wave.global_position = global_position
-	get_parent().add_child(wave)
+	var callin: Node2D = CALLIN_SCENE.instantiate() as Node2D
+	callin.global_position = Vector2(global_position.x, 148.0)
+	get_parent().add_child(callin)
 
 func _follow_player(delta: float) -> void:
 	var target: Vector2 = player.global_position + _base_offset

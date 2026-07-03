@@ -9,6 +9,8 @@ const FRAME_SCENE     := preload("res://scenes/world/guardian.tscn")
 const TREE_SCENE      := preload("res://scenes/world/tree.tscn")
 const SHIP_SCENE      := preload("res://scenes/world/ship.tscn")
 const PORTAL_SCENE    := preload("res://scenes/world/portal.tscn")
+const SHRINE_SCENE    := preload("res://scenes/world/ghost_shrine.tscn")
+const PICKUP_SCENE    := preload("res://scenes/world/pickup.tscn")
 const SERVITOR_SCENE  := preload("res://scenes/enemies/servitor.tscn")
 const FLAG_SCENE      := preload("res://scenes/world/attack_flag.tscn")
 const WILDLIFE_SCENE  := preload("res://scenes/world/wildlife.tscn")
@@ -343,6 +345,18 @@ func _spawn_world_objects() -> void:
 	var flag: Node2D = FLAG_SCENE.instantiate() as Node2D
 	flag.position = Vector2(620.0, 148.0)
 	add_child(flag)
+
+	# Sundance waits in a firelit hollow past the tree line (EP-08)
+	var shrine: Node2D = SHRINE_SCENE.instantiate() as Node2D
+	shrine.position = Vector2(560.0, 148.0)
+	add_child(shrine)
+
+	# world-secret shards: one near the wreck, one deep in the field
+	for x: float in [-330.0, 685.0]:
+		var shard: Area2D = PICKUP_SCENE.instantiate() as Area2D
+		shard.set("kind", "shard")
+		shard.position = Vector2(x, 143.0)
+		add_child(shard)
 
 # ── SPAWNING ──────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,7 @@
 extends Node
 
 signal glimmer_changed(new_value: int)
+signal vault_changed(new_value: int)
 signal ghost_captured
 signal ghost_released
 signal game_over
@@ -27,6 +28,9 @@ var glimmer: int = 0:
 		glimmer = clampi(value, 0, GLIMMER_CAP)
 		glimmer_changed.emit(glimmer)
 
+# Vaulted glimmer is safe from combat scatter but isn't armor (EP-10)
+var vaulted_glimmer: int = 0
+
 var is_ghost_captured := false
 var wave_number: int = 0
 var day_number: int = 0
@@ -52,6 +56,14 @@ func spend_glimmer(amount: int) -> bool:
 		glimmer -= amount
 		return true
 	return false
+
+func vault_deposit(amount: int) -> void:
+	vaulted_glimmer += amount
+	vault_changed.emit(vaulted_glimmer)
+
+func vault_withdraw(amount: int) -> void:
+	vaulted_glimmer = maxi(vaulted_glimmer - amount, 0)
+	vault_changed.emit(vaulted_glimmer)
 
 func on_ghost_captured() -> void:
 	is_ghost_captured = true
@@ -113,6 +125,8 @@ func is_prompt_owner(caller: Object) -> bool:
 func new_run() -> void:
 	current_run += 1
 	glimmer = 0
+	vaulted_glimmer = 0
+	vault_changed.emit(0)
 	wave_number = 0
 	day_number = 0
 	redjack_jobs_available = 0

@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/earth_highway.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/world/job_post.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/world/defender.tscn" id="10"]
 [ext_resource type="PackedScene" path="res://scenes/world/tower.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/world/vault_pad.tscn" id="12"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_1"]
 
@@ -73,6 +74,14 @@ job_type = 1
 [node name="JobPostRedjack" parent="." instance=ExtResource("9")]
 position = Vector2(-55, 148)
 job_type = 0
+
+[node name="VaultDeposit" parent="." instance=ExtResource("12")]
+position = Vector2(-122, 148)
+mode = 0
+
+[node name="VaultWithdraw" parent="." instance=ExtResource("12")]
+position = Vector2(-96, 148)
+mode = 1
 
 [node name="JobPostBuilder" parent="." instance=ExtResource("9")]
 position = Vector2(120, 148)

@@ -10,9 +10,18 @@ const BUILD_SWINGS   := 4
 const COLOR_HEALTHY    := Color(0.50, 0.44, 0.36, 1.0)
 const COLOR_DAMAGED    := Color(0.28, 0.22, 0.16, 1.0)
 const COLOR_UNBUILT    := Color(0.35, 0.33, 0.30, 0.45)
+const COLOR_BALLISTA   := Color(0.72, 0.55, 0.30, 1.0)
+const COLOR_FLARE      := Color(0.55, 0.70, 0.85, 1.0)
+
+# Hermit conversions (EP-13)
+const BALLISTA_RANGE    := 260.0
+const BALLISTA_COOLDOWN := 3.2
+const BALLISTA_DAMAGE   := 2
+const FRAME_SCENE := preload("res://scenes/world/guardian.tscn")
 
 @onready var _sprite: Sprite2D = $TowerSprite
 
+var special: String = ""  # "", "gunsmith" (ballista) or "tinker" (flare)
 var _built: bool = false
 var _commissioned: bool = false
 var _build_progress: int = 0
@@ -35,6 +44,25 @@ func _ready() -> void:
 	if zone:
 		zone.body_entered.connect(_on_body_entered)
 		zone.body_exited.connect(_on_body_exited)
+	GameState.day_started.connect(_on_day_started)
+
+# Flare Tower: draws a new dormant frame in from the wastes each dawn
+func _on_day_started(_day: int) -> void:
+	if special != "tinker" or not _built:
+		return
+	var dormant: int = 0
+	for f: Node in get_tree().get_nodes_in_group("frame_npc"):
+		if (f.get("state") as int) == 0:
+			dormant += 1
+	if dormant >= 6:
+		return
+	var frame: CharacterBody2D = FRAME_SCENE.instantiate() as CharacterBody2D
+	frame.global_position = global_position + Vector2(randf_range(20.0, 40.0), -12.0)
+	get_parent().call_deferred("add_child", frame)
+
+func convert_special(kind: String) -> void:
+	special = kind
+	_update_visual()
 
 func _process(delta: float) -> void:
 	if not _built:
@@ -48,7 +76,7 @@ func _process(delta: float) -> void:
 		return
 	_shoot_timer -= delta
 	if _shoot_timer <= 0.0:
-		_shoot_timer = SHOOT_COOLDOWN
+		_shoot_timer = BALLISTA_COOLDOWN if special == "gunsmith" else SHOOT_COOLDOWN
 		_fire_at_nearest_enemy()
 
 func _on_body_entered(body: Node2D) -> void:
@@ -109,14 +137,19 @@ func _update_visual() -> void:
 	if not _built:
 		_sprite.modulate = COLOR_UNBUILT
 		return
+	var base: Color = COLOR_HEALTHY
+	if special == "gunsmith":
+		base = COLOR_BALLISTA
+	elif special == "tinker":
+		base = COLOR_FLARE
 	var t: float = float(_hp) / float(MAX_HP)
-	_sprite.modulate = COLOR_HEALTHY.lerp(COLOR_DAMAGED, 1.0 - t)
+	_sprite.modulate = base.lerp(COLOR_DAMAGED, 1.0 - t)
 
 func _fire_at_nearest_enemy() -> void:
 	if not _bullet_scene:
 		return
 	var nearest: Node2D = null
-	var nearest_dist: float = SHOOT_RANGE
+	var nearest_dist: float = BALLISTA_RANGE if special == "gunsmith" else SHOOT_RANGE
 	for enemy: Node in get_tree().get_nodes_in_group("enemies"):
 		var en: Node2D = enemy as Node2D
 		if not en or not is_instance_valid(en):
@@ -130,5 +163,7 @@ func _fire_at_nearest_enemy() -> void:
 	var bullet: Node2D = _bullet_scene.instantiate() as Node2D
 	var dir: float = sign(nearest.global_position.x - global_position.x)
 	bullet.set("_dir", dir)
+	if special == "gunsmith":
+		bullet.set("damage", BALLISTA_DAMAGE)
 	bullet.global_position = global_position + Vector2(dir * 8.0, -8.0)
 	get_parent().add_child(bullet)

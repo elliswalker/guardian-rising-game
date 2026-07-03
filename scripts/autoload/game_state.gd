@@ -67,6 +67,7 @@ var stone_unlocked: bool = false   # Cosmodrome foundry — gates wall/tower tie
 var metal_unlocked: bool = false   # future planet — gates tier 4
 var planets_cleared: Dictionary = {}  # planet -> true once its portals fall
 var planet_states: Dictionary = {}    # planet -> departure snapshot for away-sim
+var used_hermits: Array[String] = []  # hermit kinds already settled this run
 # true while switching planets — tells the next level _ready NOT to reset the run
 var travel_mode: bool = false
 
@@ -193,6 +194,7 @@ func new_run() -> void:
 	metal_unlocked = false
 	planets_cleared.clear()
 	planet_states.clear()
+	used_hermits.clear()
 	travel_mode = false
 	wave_number = 0
 	day_number = 0

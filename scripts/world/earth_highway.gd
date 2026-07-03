@@ -11,6 +11,7 @@ const SHIP_SCENE      := preload("res://scenes/world/ship.tscn")
 const PORTAL_SCENE    := preload("res://scenes/world/portal.tscn")
 const SHRINE_SCENE    := preload("res://scenes/world/ghost_shrine.tscn")
 const PICKUP_SCENE    := preload("res://scenes/world/pickup.tscn")
+const HERMIT_SCENE    := preload("res://scenes/world/hermit.tscn")
 const SERVITOR_SCENE  := preload("res://scenes/enemies/servitor.tscn")
 const FLAG_SCENE      := preload("res://scenes/world/attack_flag.tscn")
 const WILDLIFE_SCENE  := preload("res://scenes/world/wildlife.tscn")
@@ -73,6 +74,8 @@ var _post_spawn_timer: float = 0.0
 var _spike_this_night: bool = false
 var _quiet_night_pending: bool = false
 var _quiet_this_night: bool = false
+# Seeded per run+planet so the layout is stable across visits (EP-15)
+var _layout_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	add_to_group("world")
@@ -88,11 +91,25 @@ func _ready() -> void:
 	GameState.dual_front = false
 	GameState.portal_active = not GameState.planets_cleared.get(PLANET_NAME, false)
 	GameState.portal_broken.connect(_on_portal_broken)
+	_layout_rng.seed = hash(PLANET_NAME) + GameState.current_run * 7919
+	_jitter_layout()
 	_spawn_trees()
 	_spawn_world_objects()
 	_spawn_initial_caches()
 	_restore_planet_state()
 	_start_day()
+
+# EP-15: shuffle authored positions within bands each run. Same seed per
+# run+planet, so returning to a planet finds the same layout.
+func _jitter_layout() -> void:
+	for site: Node in get_tree().get_nodes_in_group("build_sites"):
+		var sn: Node2D = site as Node2D
+		if sn:
+			sn.global_position.x += _layout_rng.randf_range(-18.0, 18.0)
+	for f: Node in get_tree().get_nodes_in_group("frame_npc"):
+		var fn: Node2D = f as Node2D
+		if fn:
+			fn.global_position.x += _layout_rng.randf_range(-25.0, 25.0)
 
 func _process(delta: float) -> void:
 	match _phase:
@@ -250,7 +267,7 @@ func save_planet_state() -> void:
 	for t: Node in get_tree().get_nodes_in_group("towers"):
 		var tn: Node2D = t as Node2D
 		if tn and is_instance_valid(tn) and bool(tn.get("_built")):
-			towers.append({"x": tn.global_position.x, "hp": int(tn.get("_hp"))})
+			towers.append({"x": tn.global_position.x, "hp": int(tn.get("_hp")), "special": String(tn.get("special"))})
 	var workers: Array = []
 	for f: Node in get_tree().get_nodes_in_group("frame_npc"):
 		if f.has_method("worker_role"):
@@ -287,6 +304,9 @@ func _restore_planet_state() -> void:
 			if tn and is_instance_valid(tn) and absf(tn.global_position.x - float(t["x"])) < 8.0:
 				if tn.has_method("restore"):
 					tn.call("restore", int(t["hp"]))
+				var sp: String = String(t.get("special", ""))
+				if sp != "" and tn.has_method("convert_special"):
+					tn.call("convert_special", sp)
 	# Surviving workers wake straight into their old roles
 	for role: String in st["workers"]:
 		for f: Node in get_tree().get_nodes_in_group("frame_npc"):
@@ -325,7 +345,7 @@ func _simulate_away_nights(st: Dictionary) -> void:
 func _spawn_trees() -> void:
 	for x: float in TREE_POSITIONS:
 		var tree: Node2D = TREE_SCENE.instantiate() as Node2D
-		tree.position = Vector2(x, 148.0)
+		tree.position = Vector2(x + _layout_rng.randf_range(-25.0, 25.0), 148.0)
 		add_child(tree)
 
 func _spawn_world_objects() -> void:
@@ -357,6 +377,13 @@ func _spawn_world_objects() -> void:
 		shard.set("kind", "shard")
 		shard.position = Vector2(x, 143.0)
 		add_child(shard)
+
+	# ADU-8 the Gunsmith waits deep in the field (EP-13) — once per run
+	if not GameState.used_hermits.has("gunsmith"):
+		var hermit: Node2D = HERMIT_SCENE.instantiate() as Node2D
+		hermit.set("kind", "gunsmith")
+		hermit.position = Vector2(700.0, 148.0)
+		add_child(hermit)
 
 # ── SPAWNING ──────────────────────────────────────────────────────────────────
 

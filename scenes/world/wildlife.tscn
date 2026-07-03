@@ -1,20 +1,12 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/wildlife.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/world/critter.png" id="2"]
 
 [node name="Wildlife" type="Node2D"]
 script = ExtResource("1")
 
-[node name="Body" type="ColorRect" parent="."]
-offset_left = -3.0
-offset_top = -3.0
-offset_right = 3.0
-offset_bottom = 1.0
-color = Color(0.55, 0.42, 0.28, 1.0)
-
-[node name="Ear" type="ColorRect" parent="."]
-offset_left = 1.0
-offset_top = -5.0
-offset_right = 3.0
-offset_bottom = -3.0
-color = Color(0.48, 0.36, 0.24, 1.0)
+[node name="Body" type="Sprite2D" parent="."]
+position = Vector2(0, -1)
+texture = ExtResource("2")
+texture_filter = 1

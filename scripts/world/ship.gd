@@ -15,7 +15,7 @@ const STAGE_HULL_COLORS: Array[Color] = [
 	Color(0.80, 0.78, 0.72, 1.0),  # launch-ready — bright
 ]
 
-@onready var _hull:   ColorRect = $Hull
+@onready var _hull:   Sprite2D = $Hull
 @onready var _engine: ColorRect = $Engine
 @onready var _glow:   ColorRect = $Glow
 
@@ -89,7 +89,7 @@ func _advance_stage() -> void:
 		_show_prompt()
 
 func _update_visual() -> void:
-	_hull.color = STAGE_HULL_COLORS[_stage]
+	_hull.modulate = STAGE_HULL_COLORS[_stage]
 	var glow_alpha: float = float(_stage) / 3.0 * 0.55
 	_glow.modulate.a = glow_alpha
 	_engine.modulate.a = 0.3 + float(_stage) / 3.0 * 0.7

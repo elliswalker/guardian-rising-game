@@ -11,8 +11,8 @@ const INTERACT_RANGE    := 28.0
 
 const BUILD_SITE_SCENE := preload("res://scenes/world/build_site.tscn")
 
-@onready var _foliage: ColorRect = $Foliage
-@onready var _trunk:   ColorRect = $Trunk
+@onready var _foliage: Sprite2D = $Foliage
+@onready var _trunk:   Sprite2D = $Trunk
 
 var _hp: int = HP_MAX
 var _commissioned: bool = false
@@ -20,6 +20,7 @@ var _player_nearby: bool = false
 
 func _ready() -> void:
 	add_to_group("trees")
+	_update_visual()
 
 func _process(_delta: float) -> void:
 	if _commissioned:
@@ -44,8 +45,7 @@ func commission() -> void:
 	_commissioned = true
 	_player_nearby = false
 	GameState.hide_action_prompt(self)
-	# The tree appears slightly brighter once commissioned
-	_foliage.modulate = Color(1.2, 1.2, 0.8, 1.0)
+	_update_visual()  # commissioned trees render brighter
 
 # Returns true when the tree falls. Called by builder on each swing.
 func chop() -> bool:
@@ -66,7 +66,9 @@ func _spawn_build_site() -> void:
 
 func _update_visual() -> void:
 	var t: float = float(_hp) / float(HP_MAX)
-	_foliage.color = Color(0.18 + t * 0.15, 0.48 + t * 0.22, 0.12, 1.0)
-	_trunk.color = Color(0.35 - (1.0 - t) * 0.12, 0.22 - (1.0 - t) * 0.05, 0.10, 1.0)
+	var fol: Color = Color(0.18 + t * 0.15, 0.48 + t * 0.22, 0.12, 1.0)
 	if _commissioned:
-		_foliage.modulate = Color(1.2, 1.2, 0.8, 1.0)
+		# marked for chopping — brighter, yellow-shifted
+		fol = Color(minf(fol.r * 1.8, 1.0), minf(fol.g * 1.5, 1.0), fol.b * 0.8, 1.0)
+	_foliage.modulate = fol
+	_trunk.modulate = Color(0.35 - (1.0 - t) * 0.12, 0.22 - (1.0 - t) * 0.05, 0.10, 1.0)

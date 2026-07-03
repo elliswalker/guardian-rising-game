@@ -11,7 +11,7 @@ const COLOR_HEALTHY    := Color(0.50, 0.44, 0.36, 1.0)
 const COLOR_DAMAGED    := Color(0.28, 0.22, 0.16, 1.0)
 const COLOR_UNBUILT    := Color(0.35, 0.33, 0.30, 0.45)
 
-@onready var _sprite: ColorRect = $TowerSprite
+@onready var _sprite: Sprite2D = $TowerSprite
 
 var _built: bool = false
 var _commissioned: bool = false
@@ -95,10 +95,10 @@ func take_damage(amount: int) -> void:
 
 func _update_visual() -> void:
 	if not _built:
-		_sprite.color = COLOR_UNBUILT
+		_sprite.modulate = COLOR_UNBUILT
 		return
 	var t: float = float(_hp) / float(MAX_HP)
-	_sprite.color = COLOR_HEALTHY.lerp(COLOR_DAMAGED, 1.0 - t)
+	_sprite.modulate = COLOR_HEALTHY.lerp(COLOR_DAMAGED, 1.0 - t)
 
 func _fire_at_nearest_enemy() -> void:
 	if not _bullet_scene:

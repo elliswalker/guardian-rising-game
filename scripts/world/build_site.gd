@@ -4,7 +4,7 @@ const WALL_SCENE  := preload("res://scenes/world/wall.tscn")
 const SWING_COUNT := 4
 const BUILD_COST  := 50  # glimmer charged when player actions the job
 
-@onready var _site_sprite: ColorRect = $SiteSprite
+@onready var _site_sprite: Sprite2D = $SiteSprite
 @onready var _glow: ColorRect = $Glow
 
 # Tier memory from the wall that was here before (1=Wood … 4=Shield).

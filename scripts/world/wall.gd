@@ -20,7 +20,7 @@ const COLOR_BROKEN: Array[Color] = [
 
 const HITS_PER_HP := 3  # dreg hits required to lose 1 HP; wood wall survives 6 hits
 
-@onready var _sprite: ColorRect = $WallSprite
+@onready var _sprite: Sprite2D = $WallSprite
 
 # Set this before add_child() to spawn a wall at the correct tier.
 # Default 2 = Healthy Wood.
@@ -61,7 +61,7 @@ func _update_visual() -> void:
 	if _hp <= 0:
 		return
 	var tier: int = current_tier()
-	_sprite.color = COLOR_BROKEN[tier] if (_hp % 2) == 1 else COLOR_HEALTHY[tier]
+	_sprite.modulate = COLOR_BROKEN[tier] if (_hp % 2) == 1 else COLOR_HEALTHY[tier]
 
 func repair() -> void:
 	if _hp <= 0:

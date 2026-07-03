@@ -13,7 +13,7 @@ const GLIMMER_MAX    := 24
 const WANDER_CHANGE_MIN := 1.2
 const WANDER_CHANGE_MAX := 3.0
 
-@onready var _body: ColorRect = $Body
+@onready var _body: Sprite2D = $Body
 
 var _home_x: float = 0.0
 var _dir: float = 1.0

@@ -66,8 +66,8 @@ const COLOR_FLASH    := Color(1.0,  1.0,  0.5,  1.0)
 const COLOR_LOCKER   := Color(0.06, 0.22, 0.30, 0.95)
 const COLOR_INDICATOR_AMBER := Color(1.0, 0.65, 0.05, 1.0)
 
-@onready var _sprite: ColorRect = $FrameSprite
-@onready var _locker_sprite: ColorRect = $LockerSprite
+@onready var _sprite: Sprite2D = $FrameSprite
+@onready var _locker_sprite: Sprite2D = $LockerSprite
 @onready var _indicator_light: ColorRect = $IndicatorLight
 
 var state: State = State.DORMANT
@@ -96,7 +96,7 @@ func _ready() -> void:
 	add_to_group("frame_npc")
 	collision_layer = 16  # frame NPC layer — player and enemies pass through
 	collision_mask = 1    # ground only
-	_sprite.color = COLOR_DORMANT
+	_sprite.modulate = COLOR_DORMANT
 	_spawn_pos = global_position
 	_restore_locker()
 	GameState.redjack_job_created.connect(_on_redjack_job_created)
@@ -228,7 +228,7 @@ func _recruit() -> void:
 		GameState.action_prompt_hide.emit()
 	_open_locker()
 	add_to_group("frame_following")
-	_sprite.color = COLOR_WAITING
+	_sprite.modulate = COLOR_WAITING
 	_find_nearest_job_post()
 	state = State.SEEKING_JOB_POST
 
@@ -270,7 +270,7 @@ func knocked_dormant() -> void:
 	if GameState.wave_changed.is_connected(_on_wave_changed):
 		GameState.wave_changed.disconnect(_on_wave_changed)
 	state = State.RETURNING_TO_SPAWN
-	_sprite.color = COLOR_DORMANT
+	_sprite.modulate = COLOR_DORMANT
 
 func _do_return_to_spawn() -> void:
 	var dist: float = abs(global_position.x - _spawn_pos.x)
@@ -466,7 +466,7 @@ func _arrive_at_job_post() -> void:
 	remove_from_group("frame_following")
 	add_to_group("frame_waiting")
 	state = State.WAITING
-	_sprite.color = COLOR_WAITING
+	_sprite.modulate = COLOR_WAITING
 	_try_take_post_job()
 
 func _try_take_post_job() -> void:
@@ -512,7 +512,7 @@ func _on_redjack_job_created() -> void:
 	remove_from_group("frame_waiting")
 	add_to_group("redjacks")
 	state = State.PATROL
-	_sprite.color = COLOR_REDJACK
+	_sprite.modulate = COLOR_REDJACK
 	GameState.wave_changed.connect(_on_wave_changed)
 	if GameState.wave_number >= 1:
 		_start_repositioning()
@@ -531,7 +531,7 @@ func _on_sweeperbot_job_created() -> void:
 	remove_from_group("frame_waiting")
 	add_to_group("sweeperbots")
 	state = State.SWEEPING
-	_sprite.color = COLOR_FARMER
+	_sprite.modulate = COLOR_FARMER
 
 func _on_builder_job_created() -> void:
 	if state != State.WAITING:
@@ -547,7 +547,7 @@ func _on_builder_job_created() -> void:
 	_is_builder = true
 	remove_from_group("frame_waiting")
 	add_to_group("builders")
-	_sprite.color = COLOR_BUILDER
+	_sprite.modulate = COLOR_BUILDER
 	GameState.build_job_queued.connect(_on_build_job_queued)
 	_try_claim_build_job()
 
@@ -746,7 +746,7 @@ func _do_repair(delta: float) -> void:
 		if not _repair_target.has_method("can_upgrade") or not _repair_target.call("can_upgrade"):
 			_repair_target = null
 			_is_upgrading = false
-			_sprite.color = COLOR_BUILDER
+			_sprite.modulate = COLOR_BUILDER
 			state = State.BUILDER_IDLE
 			return
 	else:
@@ -754,7 +754,7 @@ func _do_repair(delta: float) -> void:
 		var hp_int: int = hp_val as int if hp_val != null else 0
 		if hp_int <= 0 or (hp_int % 2) == 0:  # wall gone or already healthy
 			_repair_target = null
-			_sprite.color = COLOR_BUILDER
+			_sprite.modulate = COLOR_BUILDER
 			state = State.BUILDER_IDLE
 			return
 	var dist: float = abs(global_position.x - _repair_target.global_position.x)
@@ -764,7 +764,7 @@ func _do_repair(delta: float) -> void:
 	velocity.x = 0.0
 	_build_timer += delta
 	var pulse: float = sin(_build_timer * TAU) * 0.5 + 0.5
-	_sprite.color = COLOR_BUILDER.lerp(COLOR_FLASH, pulse)
+	_sprite.modulate = COLOR_BUILDER.lerp(COLOR_FLASH, pulse)
 	if _build_timer >= BUILD_SWING_TIME:
 		_build_timer = 0.0
 		if _repair_target and is_instance_valid(_repair_target):
@@ -774,7 +774,7 @@ func _do_repair(delta: float) -> void:
 				_repair_target.call("repair")
 		_repair_target = null
 		_is_upgrading = false
-		_sprite.color = COLOR_BUILDER
+		_sprite.modulate = COLOR_BUILDER
 		state = State.BUILDER_IDLE
 
 func _do_seek_site(_delta: float) -> void:
@@ -795,14 +795,14 @@ func _do_building(delta: float) -> void:
 		return
 	_build_timer += delta
 	var pulse: float = sin(_build_timer * TAU) * 0.5 + 0.5
-	_sprite.color = COLOR_BUILDER.lerp(COLOR_WAITING, pulse)
+	_sprite.modulate = COLOR_BUILDER.lerp(COLOR_WAITING, pulse)
 	if _build_timer >= BUILD_SWING_TIME:
 		_build_timer -= BUILD_SWING_TIME  # keep rhythm; don't reset to 0
 		if _build_site_target and is_instance_valid(_build_site_target):
 			_build_site_target.add_progress(1)
 			if not is_instance_valid(_build_site_target) or _build_site_target.is_complete():
 				_build_site_target = null
-				_sprite.color = COLOR_BUILDER
+				_sprite.modulate = COLOR_BUILDER
 				_try_claim_build_job()
 
 # ── Reposition ────────────────────────────────────────────────────────────────
@@ -864,7 +864,7 @@ func enter_tower(tower: Node2D) -> void:
 	_tower = tower
 	tower.garrison(self)
 	state = State.GARRISONED
-	_sprite.color = COLOR_REDJACK  # visible, stationed at tower
+	_sprite.modulate = COLOR_REDJACK  # visible, stationed at tower
 
 func exit_tower() -> void:
 	_tower = null
@@ -882,11 +882,11 @@ func _do_attack(attack_range: float) -> void:
 		_flash_attack()
 
 func _flash_attack() -> void:
-	var restore_color: Color = _sprite.color
+	var restore_color: Color = _sprite.modulate
 	var tween: Tween = create_tween()
-	tween.tween_property(_sprite, "color", COLOR_FLASH, 0.0)
+	tween.tween_property(_sprite, "modulate", COLOR_FLASH, 0.0)
 	tween.tween_interval(0.08)
-	tween.tween_property(_sprite, "color", restore_color, 0.12)
+	tween.tween_property(_sprite, "modulate", restore_color, 0.12)
 
 # ── Tree chopping (builders) ──────────────────────────────────────────────────
 
@@ -902,14 +902,14 @@ func _do_chop(delta: float) -> void:
 	velocity.x = 0.0
 	_build_timer += delta
 	var pulse: float = sin(_build_timer * TAU) * 0.5 + 0.5
-	_sprite.color = COLOR_BUILDER.lerp(COLOR_FLASH, pulse)
+	_sprite.modulate = COLOR_BUILDER.lerp(COLOR_FLASH, pulse)
 	if _build_timer >= BUILD_SWING_TIME:
 		_build_timer = 0.0
 		if _tree_target and is_instance_valid(_tree_target):
 			var fell: bool = _tree_target.call("chop")
 			if fell or not is_instance_valid(_tree_target):
 				_tree_target = null
-				_sprite.color = COLOR_BUILDER
+				_sprite.modulate = COLOR_BUILDER
 				state = State.BUILDER_IDLE
 
 # ── Assault (player ordered charge) ──────────────────────────────────────────

@@ -21,8 +21,10 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if not _player_nearby or GameState.stone_unlocked:
 		return
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 	GameState.show_action_prompt(self,
-		"[ SPACE ]  Restore Foundry  —  %d ◈   (unlocks Metal-tier walls & towers)" % RESTORE_COST, 9)
+		"[ SPACE ]  Restore Foundry  —  %d ◈   (unlocks Metal-tier walls & towers)" % RESTORE_COST, 9, pdist)
 	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 		_restore()
 

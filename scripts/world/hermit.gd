@@ -51,7 +51,7 @@ func _process(_delta: float) -> void:
 		var tower: Node2D = _nearest_convertible_tower()
 		if tower:
 			GameState.show_action_prompt(self,
-				"[ SPACE ]  Settle %s  —  %s" % [NAMES[kind], CONVERSIONS[kind]], 10)
+				"[ SPACE ]  Settle %s  —  %s" % [NAMES[kind], CONVERSIONS[kind]], 10, 5.0)
 			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 				_settle(tower)
 		else:
@@ -60,9 +60,10 @@ func _process(_delta: float) -> void:
 	# waiting in the field — day only
 	if modulate.a < 0.9:
 		return
-	var near: bool = global_position.distance_to(_player.global_position) < INTERACT_RANGE
+	var pdist: float = global_position.distance_to(_player.global_position)
+	var near: bool = pdist < INTERACT_RANGE
 	if near:
-		GameState.show_action_prompt(self, "[ SPACE ]  Carry %s" % NAMES[kind], 10)
+		GameState.show_action_prompt(self, "[ SPACE ]  Carry %s" % NAMES[kind], 10, pdist)
 		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 			_carried = true
 	else:

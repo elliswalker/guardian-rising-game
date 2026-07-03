@@ -38,23 +38,23 @@ func _check_player_proximity() -> void:
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 	if not player:
 		return
-	var nearby: bool = global_position.distance_to(player.global_position) < INTERACT_RANGE
-	if nearby != _player_nearby:
-		_player_nearby = nearby
-		if nearby:
-			_show_prompt()
-		else:
-			GameState.action_prompt_hide.emit()
-	if nearby and Input.is_action_just_pressed("action"):
+	var pdist: float = global_position.distance_to(player.global_position)
+	var nearby: bool = pdist < INTERACT_RANGE
+	if nearby:
+		_show_prompt(pdist)
+	elif _player_nearby:
+		GameState.hide_action_prompt(self)
+	_player_nearby = nearby
+	if nearby and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 		_on_interact()
 
-func _show_prompt() -> void:
+func _show_prompt(pdist: float = 999999.0) -> void:
 	if _stage >= 3:
-		GameState.action_prompt_show.emit("[ SPACE ]  Launch")
+		GameState.show_action_prompt(self, "[ SPACE ]  Launch", 9, pdist)
 	elif _stage_commissioned:
-		GameState.action_prompt_show.emit("Builders are working on the ship...")
+		GameState.show_action_prompt(self, "Builders are working on the ship...", 9, pdist)
 	else:
-		GameState.action_prompt_show.emit("[ SPACE ]  Repair Ship  —  %d ◈" % STAGE_COST[_stage])
+		GameState.show_action_prompt(self, "[ SPACE ]  Repair Ship  —  %d ◈" % STAGE_COST[_stage], 9, pdist)
 
 func _on_interact() -> void:
 	if _stage >= 3:
@@ -65,7 +65,7 @@ func _on_interact() -> void:
 	if not GameState.spend_glimmer(STAGE_COST[_stage]):
 		return
 	_stage_commissioned = true
-	GameState.action_prompt_hide.emit()
+	GameState.hide_action_prompt(self)
 	GameState.queue_build_job(self)
 
 # Builder interface — same contract as build_site.gd
@@ -97,7 +97,7 @@ func _update_visual() -> void:
 	_engine.modulate.a = 0.3 + float(_stage) / 3.0 * 0.7
 
 func _launch() -> void:
-	GameState.action_prompt_hide.emit()
+	GameState.hide_action_prompt(self)
 	GameState.ship_repaired = true
 	# Snapshot this planet so the away-simulation can run while we're gone
 	var world: Node = get_tree().get_first_node_in_group("world")

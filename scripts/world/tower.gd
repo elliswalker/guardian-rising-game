@@ -67,10 +67,12 @@ func convert_special(kind: String) -> void:
 func _process(delta: float) -> void:
 	if not _built:
 		if _player_nearby and not _commissioned:
+			var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+			var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 			if GameState.encampment_tier < 3:
-				GameState.show_action_prompt(self, "Tower — Requires Encampment T3", 12)
+				GameState.show_action_prompt(self, "Tower — Requires Encampment T3", 12, pdist)
 			else:
-				GameState.show_action_prompt(self, "[ SPACE ]  Build Tower  —  %d ◈" % BUILD_COST, 12)
+				GameState.show_action_prompt(self, "[ SPACE ]  Build Tower  —  %d ◈" % BUILD_COST, 12, pdist)
 				if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 					_commission()
 		return

@@ -56,9 +56,11 @@ func _on_body_exited(body: Node2D) -> void:
 		GameState.hide_action_prompt(self)
 
 func _show_prompt() -> void:
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 	if GameState.encampment_tier < TIER_REQUIRED[job_type]:
 		GameState.show_action_prompt(self,
-			"%s — Requires Encampment T%d" % [LABELS[job_type], TIER_REQUIRED[job_type]], 6)
+			"%s — Requires Encampment T%d" % [LABELS[job_type], TIER_REQUIRED[job_type]], 6, pdist)
 		return
 	var cost: int = COSTS[job_type]
 	var label: String = LABELS[job_type]
@@ -66,9 +68,9 @@ func _show_prompt() -> void:
 		+ get_tree().get_nodes_in_group("frame_following").size()
 	if available > 0:
 		GameState.show_action_prompt(self,
-			"[ SPACE ]  Assign %s  —  %d ◈   (%d available)" % [label, cost, available], 6)
+			"[ SPACE ]  Assign %s  —  %d ◈   (%d available)" % [label, cost, available], 6, pdist)
 	else:
-		GameState.show_action_prompt(self, "[ SPACE ]  Create %s Job  —  %d ◈" % [label, cost], 6)
+		GameState.show_action_prompt(self, "[ SPACE ]  Create %s Job  —  %d ◈" % [label, cost], 6, pdist)
 
 func _try_create_job() -> void:
 	if GameState.encampment_tier < TIER_REQUIRED[job_type]:

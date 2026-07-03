@@ -27,7 +27,7 @@ const PATROL_SPEED := 12.0
 const CHASE_SPEED := 23.0
 const REPOSITION_SPEED := 26.0
 const SWEEP_SPEED := 19.0
-const RECRUIT_RANGE := 19.0
+const RECRUIT_RANGE := 28.0
 const RECRUIT_COST := 75
 const ENEMY_DETECT_RANGE := 63.0
 const ATTACK_RANGE_ENGAGE := 21.0
@@ -200,12 +200,13 @@ func _check_recruit_prompt() -> void:
 		_player = get_tree().get_first_node_in_group("player") as CharacterBody2D
 	if not _player:
 		return
-	var near: bool = global_position.distance_to(_player.global_position) < RECRUIT_RANGE
+	var pdist: float = global_position.distance_to(_player.global_position)
+	var near: bool = pdist < RECRUIT_RANGE
 	var closest: bool = near and _is_closest_dormant_frame()
-	if closest and not _prompt_showing:
+	if closest:
 		_prompt_showing = true
-		GameState.show_action_prompt(self, "[ SPACE ]  Reactivate Frame  —  %d ◈" % RECRUIT_COST, 11)
-	elif not closest and _prompt_showing:
+		GameState.show_action_prompt(self, "[ SPACE ]  Reactivate Frame  —  %d ◈" % RECRUIT_COST, 11, pdist)
+	elif _prompt_showing:
 		_prompt_showing = false
 		GameState.hide_action_prompt(self)
 	if closest and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
@@ -696,6 +697,11 @@ func _find_nearest_wildlife() -> Node2D:
 		var wn: Node2D = w as Node2D
 		if not wn or not is_instance_valid(wn):
 			continue
+		# hunt leash — prey beyond the patrol frontier is not worth the risk
+		if wn.global_position.x > _patrol_right_bound() + 60.0:
+			continue
+		if GameState.dual_front and wn.global_position.x < _patrol_left_bound() - 60.0:
+			continue
 		var dist: float = global_position.distance_to(wn.global_position)
 		if dist < nearest_dist:
 			nearest_dist = dist
@@ -711,6 +717,13 @@ func _do_engage(delta: float) -> void:
 		return
 	var dist: float = global_position.distance_to(_target_enemy.global_position)
 	if dist > ENEMY_DETECT_RANGE * 1.5:
+		_target_enemy = null
+		state = State.PATROL
+		return
+	# Leash: never chase past the patrol frontier — that's how hunters get
+	# caught out in the field when dusk hits
+	var ex: float = _target_enemy.global_position.x
+	if ex > _patrol_right_bound() + 50.0 			or (GameState.dual_front and ex < _patrol_left_bound() - 50.0):
 		_target_enemy = null
 		state = State.PATROL
 		return

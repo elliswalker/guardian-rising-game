@@ -46,10 +46,12 @@ func _on_body_exited(body: Node2D) -> void:
 		GameState.hide_action_prompt(self)
 
 func _show_prompt() -> void:
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 	var next_tier: int = GameState.encampment_tier + 1
 	GameState.show_action_prompt(self,
 		"[ SPACE ]  Encampment T%d  —  %d ◈   (%s)" %
-		[next_tier, TIER_COSTS[next_tier], TIER_UNLOCKS[next_tier]], 7)
+		[next_tier, TIER_COSTS[next_tier], TIER_UNLOCKS[next_tier]], 7, pdist)
 
 func _try_upgrade() -> void:
 	var next_tier: int = GameState.encampment_tier + 1

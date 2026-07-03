@@ -36,13 +36,15 @@ func _process(delta: float) -> void:
 	_pulse_time += delta
 	_update_visual()
 	if _player_nearby and not _actioned:
+		var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+		var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 		var blocking: Node2D = _get_blocking_tree()
 		if blocking:
-			GameState.show_action_prompt(self, "[ SPACE ]  Mark Tree  —  Clear Path", 12)
+			GameState.show_action_prompt(self, "[ SPACE ]  Mark Tree  —  Clear Path", 12, pdist)
 			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 				blocking.call("commission")
 		else:
-			GameState.show_action_prompt(self, "[ SPACE ]  Build Wall  —  %d ◈" % BUILD_COST, 12)
+			GameState.show_action_prompt(self, "[ SPACE ]  Build Wall  —  %d ◈" % BUILD_COST, 12, pdist)
 			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 				_action_job()
 
@@ -59,12 +61,7 @@ func _has_nearby_tree() -> bool:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):
-		_player_nearby = true
-		if not _actioned:
-			if _has_nearby_tree():
-				GameState.show_action_prompt(self, "[ SPACE ]  Mark Tree  —  Clear Path", 12)
-			else:
-				GameState.show_action_prompt(self, "[ SPACE ]  Build Wall  —  %d ◈" % BUILD_COST, 12)
+		_player_nearby = true  # _process asserts the prompt with live distance
 
 func _on_body_exited(body: Node2D) -> void:
 	if body.is_in_group("player"):

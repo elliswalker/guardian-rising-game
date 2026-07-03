@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/structures/build_site.png" id="2"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
-size = Vector2(20, 16)
+size = Vector2(36, 20)
 
 [node name="BuildSite" type="Area2D"]
 script = ExtResource("1")

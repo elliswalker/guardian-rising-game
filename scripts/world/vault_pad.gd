@@ -48,27 +48,29 @@ func _on_body_exited(body: Node2D) -> void:
 		GameState.hide_action_prompt(self)
 
 func _show_prompt() -> void:
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 	if GameState.encampment_tier < 4:
-		GameState.show_action_prompt(self, "Vault — Requires Encampment T4", 6)
+		GameState.show_action_prompt(self, "Vault — Requires Encampment T4", 6, pdist)
 		return
 	var stored: int = GameState.vaulted_glimmer
 	if mode == Mode.DEPOSIT:
 		var amount: int = mini(CHUNK, GameState.glimmer)
 		if amount > 0:
 			GameState.show_action_prompt(self,
-				"[ SPACE ]  Vault %d ◈   (stored: %d)" % [amount, stored], 6)
+				"[ SPACE ]  Vault %d ◈   (stored: %d)" % [amount, stored], 6, pdist)
 		else:
-			GameState.show_action_prompt(self, "Nothing to vault   (stored: %d)" % stored, 6)
+			GameState.show_action_prompt(self, "Nothing to vault   (stored: %d)" % stored, 6, pdist)
 		return
 	if not _is_day:
-		GameState.show_action_prompt(self, "Vault sealed until dawn   (stored: %d)" % stored, 6)
+		GameState.show_action_prompt(self, "Vault sealed until dawn   (stored: %d)" % stored, 6, pdist)
 		return
 	var out: int = mini(CHUNK, stored)
 	if out > 0:
 		GameState.show_action_prompt(self,
-			"[ SPACE ]  Withdraw %d ◈   (stored: %d)" % [out, stored], 6)
+			"[ SPACE ]  Withdraw %d ◈   (stored: %d)" % [out, stored], 6, pdist)
 	else:
-		GameState.show_action_prompt(self, "Vault empty", 6)
+		GameState.show_action_prompt(self, "Vault empty", 6, pdist)
 
 func _do_action() -> void:
 	if GameState.encampment_tier < 4:

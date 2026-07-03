@@ -31,14 +31,16 @@ func _process(delta: float) -> void:
 		_glow.modulate.a = 0.25 + sin(_pulse * 2.0) * 0.15
 	if not _player_nearby or _claimed:
 		return
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 	if GameState.legendary_shards >= SHARD_COST:
 		GameState.show_action_prompt(self,
-			"[ SPACE ]  Bond with Sundance  —  %d ✦ + %d ◈   (Golden Gun)" % [SHARD_COST, GLIMMER_COST], 11)
+			"[ SPACE ]  Bond with Sundance  —  %d ✦ + %d ◈   (Golden Gun)" % [SHARD_COST, GLIMMER_COST], 11, pdist)
 		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 			_claim()
 	else:
 		GameState.show_action_prompt(self,
-			"A Ghost stirs in the firelight...  (%d/%d ✦)" % [GameState.legendary_shards, SHARD_COST], 11)
+			"A Ghost stirs in the firelight...  (%d/%d ✦)" % [GameState.legendary_shards, SHARD_COST], 11, pdist)
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player"):

@@ -87,6 +87,7 @@ var _build_queue: Array[Node] = []
 var _prompt_owner: Object = null
 var _prompt_priority: int = 0
 var _prompt_text: String = ""
+var _prompt_dist: float = 999999.0
 
 func add_glimmer(amount: int) -> void:
 	glimmer += amount
@@ -155,21 +156,29 @@ func claim_next_build_job() -> Node:
 			return site
 	return null
 
-func show_action_prompt(owner: Object, text: String, priority: int = 5) -> void:
+# The NEAREST interactable to the player wins the prompt; priority only
+# breaks near-ties (objects genuinely stacked, e.g. a tree over a build site).
+# Callers should re-assert every frame with their current distance.
+func show_action_prompt(owner: Object, text: String, priority: int = 5, dist: float = 999999.0) -> void:
 	var owner_valid: bool = _prompt_owner != null and is_instance_valid(_prompt_owner)
-	if owner_valid and owner != _prompt_owner and priority < _prompt_priority:
-		return
+	if owner_valid and owner != _prompt_owner:
+		if dist > _prompt_dist + 6.0:
+			return  # someone closer holds the prompt
+		if dist > _prompt_dist - 6.0 and priority < _prompt_priority:
+			return  # effectively same spot — higher priority holds it
 	if owner != _prompt_owner or text != _prompt_text:
 		_prompt_owner = owner
-		_prompt_priority = priority
 		_prompt_text = text
 		action_prompt_show.emit(text)
+	_prompt_priority = priority
+	_prompt_dist = dist
 
 func hide_action_prompt(owner: Object) -> void:
 	if _prompt_owner == owner:
 		_prompt_owner = null
 		_prompt_priority = 0
 		_prompt_text = ""
+		_prompt_dist = 999999.0
 		action_prompt_hide.emit()
 
 func is_prompt_owner(caller: Object) -> bool:
@@ -210,4 +219,5 @@ func new_run() -> void:
 	_prompt_owner = null
 	_prompt_priority = 0
 	_prompt_text = ""
+	_prompt_dist = 999999.0
 	action_prompt_hide.emit()

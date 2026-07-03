@@ -50,9 +50,10 @@ func _physics_process(delta: float) -> void:
 		_apply_blight()
 
 func _apply_blight() -> void:
-	# TODO: apply BLIGHT_SLOW to player/frame_npc nodes within BLIGHT_RANGE
-	# Each affected node should have an "apply_blight(slow_factor, duration)" method added.
-	pass
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	if player and global_position.distance_to(player.global_position) < BLIGHT_RANGE:
+		if player.has_method("apply_blight"):
+			player.call("apply_blight", BLIGHT_PULSE + 0.5)
 
 func take_damage(amount: int) -> void:
 	if _is_dying:

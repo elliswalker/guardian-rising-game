@@ -32,6 +32,7 @@ var dual_front: bool = false
 const PLANET_SCENES: Dictionary = {
 	"earth": "res://scenes/world/earth_highway.tscn",
 	"cosmodrome": "res://scenes/world/cosmodrome.tscn",
+	"moon": "res://scenes/world/moon.tscn",
 }
 
 var glimmer: int = 0:
@@ -47,6 +48,7 @@ var encampment_tier: int = 1
 # ── Ghosts & supers (EP-08) ──────────────────────────────────────────────────
 var legendary_shards: int = 0
 var equipped_super: String = ""      # "" until an elemental Ghost is found
+var unlocked_supers: Array[String] = []  # bonded shrines become free switch stations
 var mote_reduction: float = 0.0      # seconds shaved off the next super cooldown
 
 func add_shard(amount: int = 1) -> void:
@@ -195,6 +197,7 @@ func new_run() -> void:
 	encampment_tier = 1
 	legendary_shards = 0
 	equipped_super = ""
+	unlocked_supers.clear()
 	mote_reduction = 0.0
 	shards_changed.emit(0)
 	current_planet = "earth"

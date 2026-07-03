@@ -1,10 +1,14 @@
 extends Area2D
 
-# Cosmodrome Foundry (EP-06) — restore it once to permanently unlock
-# advanced wall/tower materials (tier 3) across every planet this run.
-# The Kingdom Stone Mine, GR-flavored.
+# Tech-unlock ruin (EP-06) — the Kingdom Stone/Iron Mine, GR-flavored.
+# Cosmodrome: Foundry (stone) unlocks tier-3 Metal walls/towers.
+# Moon: Ascendant Forge (metal) unlocks tier-4 Shield walls.
+# Restore once; the unlock is permanent for the run, across every planet.
 
-const RESTORE_COST := 300
+@export var unlock_kind: String = "stone"   # "stone" or "metal"
+@export var restore_cost: int = 300
+@export var display_name: String = "Foundry"
+@export var unlock_label: String = "unlocks Metal-tier walls & towers"
 
 @onready var _body: ColorRect = $Body
 @onready var _glow: ColorRect = $Glow
@@ -18,13 +22,16 @@ func _ready() -> void:
 	body_exited.connect(_on_body_exited)
 	_update_visual()
 
+func _is_unlocked() -> bool:
+	return GameState.metal_unlocked if unlock_kind == "metal" else GameState.stone_unlocked
+
 func _process(_delta: float) -> void:
-	if not _player_nearby or GameState.stone_unlocked:
+	if not _player_nearby or _is_unlocked():
 		return
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 	GameState.show_action_prompt(self,
-		"[ SPACE ]  Restore Foundry  —  %d ◈   (unlocks Metal-tier walls & towers)" % RESTORE_COST, 9, pdist)
+		"[ SPACE ]  Restore %s  —  %d ◈   (%s)" % [display_name, restore_cost, unlock_label], 9, pdist)
 	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 		_restore()
 
@@ -38,14 +45,18 @@ func _on_body_exited(body: Node2D) -> void:
 		GameState.hide_action_prompt(self)
 
 func _restore() -> void:
-	if not GameState.spend_glimmer(RESTORE_COST):
+	if not GameState.spend_glimmer(restore_cost):
 		return
-	GameState.stone_unlocked = true
+	if unlock_kind == "metal":
+		GameState.metal_unlocked = true
+	else:
+		GameState.stone_unlocked = true
 	GameState.hide_action_prompt(self)
+	Sound.play("ding")
 	_update_visual()
 
 func _update_visual() -> void:
-	if GameState.stone_unlocked:
+	if _is_unlocked():
 		_body.color = Color(0.55, 0.45, 0.30, 1.0)   # lit forge
 		_glow.color = Color(1.0, 0.55, 0.15, 0.35)   # ember glow
 	else:

@@ -33,15 +33,31 @@ var _invuln_timer: float = 0.0
 var _pour_hold: float = 0.0
 var _pour_timer: float = 0.0
 
+var _blight_timer: float = 0.0
+
 var _speed: float:
 	get:
+		var base: float = WALK_SPEED
 		if has_ghost:
-			return SPARROW_SPEED
-		if is_hurt:
-			return LIMP_SPEED
-		if _is_running:
-			return RUN_SPEED
-		return WALK_SPEED
+			base = SPARROW_SPEED
+		elif is_hurt:
+			base = LIMP_SPEED
+		elif _is_running:
+			base = RUN_SPEED
+		if _blight_timer > 0.0:
+			base *= 0.45  # Hive blight — wading through the dark
+		return base
+
+# Hive Wizard blight — slows the Speaker while inside the field
+func apply_blight(duration: float) -> void:
+	_blight_timer = maxf(_blight_timer, duration)
+	if guardian_sprite:
+		guardian_sprite.modulate = Color(0.6, 1.0, 0.6, 1.0)
+	var tween: Tween = create_tween()
+	tween.tween_interval(duration)
+	tween.tween_callback(func() -> void:
+		if guardian_sprite and _blight_timer <= 0.1:
+			guardian_sprite.modulate = Color.WHITE)
 
 var _ghost: Node2D = null
 var _hum: AudioStreamPlayer = null
@@ -67,6 +83,8 @@ func _link_ghost() -> void:
 func _physics_process(delta: float) -> void:
 	if _invuln_timer > 0.0:
 		_invuln_timer -= delta
+	if _blight_timer > 0.0:
+		_blight_timer -= delta
 	_process_pour(delta)
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta

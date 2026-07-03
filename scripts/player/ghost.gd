@@ -9,7 +9,10 @@ const WARNING_THRESHOLD: float = 0.65
 const ABILITY_COOLDOWN := 20.0
 const ABILITY_COOLDOWN_MIN := 8.0
 
-const CALLIN_SCENE := preload("res://scenes/world/cayde_callin.tscn")
+const CALLIN_SCENES: Dictionary = {
+	"golden_gun": preload("res://scenes/world/cayde_callin.tscn"),
+	"striker": preload("res://scenes/world/zavala_callin.tscn"),
+}
 
 signal ability_cooldown_updated(fraction: float)  # 1.0 = ready, 0.0 = just used
 
@@ -62,14 +65,14 @@ func _tick_cooldown(delta: float) -> void:
 func use_ability() -> void:
 	if _ability_cooldown_remaining > 0.0 or is_captured:
 		return
-	if GameState.equipped_super == "":
+	if not CALLIN_SCENES.has(GameState.equipped_super):
 		return
 	# Motes of Light collected since the last super shorten this cooldown
 	_ability_cooldown_total = maxf(ABILITY_COOLDOWN - GameState.mote_reduction, ABILITY_COOLDOWN_MIN)
 	GameState.mote_reduction = 0.0
 	_ability_cooldown_remaining = _ability_cooldown_total
 	ability_cooldown_updated.emit(0.0)
-	var callin: Node2D = CALLIN_SCENE.instantiate() as Node2D
+	var callin: Node2D = CALLIN_SCENES[GameState.equipped_super].instantiate() as Node2D
 	callin.global_position = Vector2(global_position.x, 148.0)
 	get_parent().add_child(callin)
 

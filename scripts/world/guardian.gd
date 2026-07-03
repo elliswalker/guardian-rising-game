@@ -50,8 +50,9 @@ const REPAIR_SCAN_INTERVAL := 0.5
 const UPGRADE_COST := 50
 # How often a defending redjack checks if its wall is still standing
 const GUARD_SCAN_INTERVAL := 0.5
-# Redjacks hunt wildlife on patrol — the Kingdom archer income role
-const WILDLIFE_HUNT_RANGE := 80.0
+# Redjacks hunt wildlife on patrol — the Kingdom archer income role.
+# Range deliberately exceeds the patrol bound so hunters roam into the field after prey.
+const WILDLIFE_HUNT_RANGE := 160.0
 # Idle sweeperbots near the encampment trickle passive glimmer
 const SWEEP_TRICKLE_INTERVAL := 4.0
 const SWEEP_TRICKLE_AMOUNT   := 2
@@ -102,6 +103,7 @@ func _ready() -> void:
 	GameState.sweeperbot_job_created.connect(_on_sweeperbot_job_created)
 	GameState.builder_job_created.connect(_on_builder_job_created)
 	GameState.dusk_triggered.connect(_on_dusk_triggered)
+	GameState.day_started.connect(_on_day_started)
 	GameState.attack_ordered.connect(_on_attack_ordered)
 
 func _physics_process(delta: float) -> void:
@@ -488,6 +490,12 @@ func _on_dusk_triggered(_day: int) -> void:
 	# At dusk, redjacks leave patrol/engage and walk to their defensive wall positions
 	if is_in_group("redjacks") and (state == State.PATROL or state == State.ENGAGE):
 		_start_repositioning()
+
+func _on_day_started(_day: int) -> void:
+	# At dawn, redjacks leave the wall and go back on patrol — hunting is the day job
+	if is_in_group("redjacks") and state == State.DEFENDING:
+		_target_enemy = null
+		state = State.PATROL
 
 func _on_redjack_job_created() -> void:
 	if state != State.WAITING:

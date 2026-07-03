@@ -22,6 +22,7 @@ const TREE_POSITIONS: Array[float] = [360.0, 430.0, 510.0, 590.0, 660.0]
 const COLOR_SKY_DAY   := Color(0.42, 0.47, 0.55, 1)
 const COLOR_SKY_DUSK  := Color(0.55, 0.32, 0.18, 1)
 const COLOR_SKY_NIGHT := Color(0.08, 0.07, 0.18, 1)
+const COLOR_SKY_BLOOD := Color(0.45, 0.08, 0.10, 1)
 
 const DAY_DURATION_BASE := 90.0
 const DAY_DURATION_DEC  := 3.0
@@ -34,6 +35,13 @@ const DAWN_DURATION        := 5.5
 # After all wave spawns, dawn fires after this timeout OR when enemies clear — whichever first.
 # This ensures retreat() is called on living enemies rather than only firing when the field is empty.
 const NIGHT_WAVE_TIMEOUT   := 35.0
+
+# Night rhythm — spike nights and the mercy beat that follows them
+const SPIKE_FIRST_DAY      := 5
+const SPIKE_INTERVAL       := 5     # spike night every N days
+const SPIKE_MULTIPLIER     := 2.0
+const QUIET_NIGHT_DURATION := 10.0  # recovery night: brief, empty, then dawn
+const COUNTERATTACK_MIN    := 6
 
 # Day wanderers: Fallen dregs wander the field, count scales with day
 const DAY_DREG_COUNT    := 2
@@ -56,6 +64,9 @@ var _night_total: int = 0
 var _night_spawned: int = 0
 var _spawn_timer: float = 0.0
 var _post_spawn_timer: float = 0.0
+var _spike_this_night: bool = false
+var _quiet_night_pending: bool = false
+var _quiet_this_night: bool = false
 
 func _ready() -> void:
 	add_to_group("world")
@@ -63,6 +74,7 @@ func _ready() -> void:
 	_sky_rect = $ParallaxBackground/SkyLayer/SkyRect
 	_sun_disc = $SkyUI/SunDisc
 	GameState.new_run()
+	GameState.portal_broken.connect(_on_portal_broken)
 	_spawn_trees()
 	_spawn_world_objects()
 	_spawn_initial_caches()
@@ -138,13 +150,28 @@ func _start_night() -> void:
 		_trigger_dawn()
 		return
 	var day: int = GameState.day_number
+	_quiet_this_night = _quiet_night_pending
+	_quiet_night_pending = false
+	if _quiet_this_night:
+		# Recovery night — the enemy is spent after the spike. Brief, empty, merciful.
+		_spike_this_night = false
+		_night_total = 0
+		_night_spawned = 0
+		_spawn_timer = 0.0
+		_post_spawn_timer = NIGHT_WAVE_TIMEOUT - QUIET_NIGHT_DURATION
+		_transition_sky(COLOR_SKY_NIGHT, 3.0)
+		return
+	_spike_this_night = day >= SPIKE_FIRST_DAY and day % SPIKE_INTERVAL == 0
 	_night_total = mini(3 + (day - 1) * 2, MAX_WAVE_SIZE)
+	if _spike_this_night:
+		_night_total = int(float(_night_total) * SPIKE_MULTIPLIER)  # deliberately exceeds the cap
+		_quiet_night_pending = true
 	_night_spawned = 0
 	_spawn_timer = 1.5
 	_post_spawn_timer = 0.0
 	GameState.wave_number = day
 	GameState.wave_changed.emit(day)
-	_transition_sky(COLOR_SKY_NIGHT, 3.0)
+	_transition_sky(COLOR_SKY_BLOOD if _spike_this_night else COLOR_SKY_NIGHT, 3.0)
 
 func _night_pack_size() -> int:
 	return 1
@@ -184,6 +211,13 @@ func _process_dawn(delta: float) -> void:
 	_dawn_timer -= delta
 	if _dawn_timer <= 0.0:
 		_start_day()
+
+# The portal's death rattle — everything it has left pours out at once.
+# Victory is only reached by surviving this and making it to the next dawn.
+func _on_portal_broken(_faction: String) -> void:
+	var count: int = maxi(COUNTERATTACK_MIN, mini(3 + (GameState.day_number - 1) * 2, MAX_WAVE_SIZE))
+	_spawn_dreg_pack(count)
+	_transition_sky(COLOR_SKY_BLOOD, 1.5)
 
 # ── WORLD SETUP ───────────────────────────────────────────────────────────────
 

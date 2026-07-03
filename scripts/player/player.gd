@@ -15,6 +15,12 @@ const KNOCK_MAX := 50
 const SHARD_GROUND_Y := 144.0
 const CACHE_SCENE := preload("res://scenes/world/glimmer_cache.tscn")
 
+# Pour verb — hold Action with nothing nearby to toss glimmer on the ground.
+# The literal Kingdom coin toss: bait, bribe, or gift.
+const POUR_HOLD_DELAY := 0.35
+const POUR_INTERVAL   := 0.25
+const POUR_CHUNK      := 10
+
 @onready var sparrow_sprite: CanvasItem = $SparrowSprite
 @onready var guardian_sprite: CanvasItem = $GuardianSprite
 
@@ -24,6 +30,8 @@ var _is_running: bool = false
 var _last_tap_dir: float = 0.0
 var _last_tap_time: float = -1.0
 var _invuln_timer: float = 0.0
+var _pour_hold: float = 0.0
+var _pour_timer: float = 0.0
 
 var _speed: float:
 	get:
@@ -51,6 +59,7 @@ func _link_ghost() -> void:
 func _physics_process(delta: float) -> void:
 	if _invuln_timer > 0.0:
 		_invuln_timer -= delta
+	_process_pour(delta)
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 
@@ -86,6 +95,32 @@ func _unhandled_input(event: InputEvent) -> void:
 func _update_facing(direction: float) -> void:
 	if direction != 0:
 		scale.x = sign(direction)
+
+# Pour: hold Action away from any interactable to drop glimmer at your feet.
+# Enemies prioritize ground loot — this is the deliberate bribe.
+func _process_pour(delta: float) -> void:
+	if Input.is_action_pressed("action") and not GameState.has_active_prompt():
+		_pour_hold += delta
+		if _pour_hold < POUR_HOLD_DELAY:
+			return
+		_pour_timer -= delta
+		if _pour_timer <= 0.0:
+			_pour_timer = POUR_INTERVAL
+			if GameState.spend_glimmer(POUR_CHUNK):
+				_drop_shard(POUR_CHUNK)
+	else:
+		_pour_hold = 0.0
+		_pour_timer = 0.0
+
+func _drop_shard(value: int) -> void:
+	var shard: Area2D = CACHE_SCENE.instantiate() as Area2D
+	shard.set("glimmer_amount", value)
+	shard.set("despawn_after", 20.0)
+	# toss ahead of the player, clear of the pickup overlap
+	var facing: float = signf(scale.x) if scale.x != 0.0 else 1.0
+	shard.global_position = Vector2(
+		global_position.x + facing * randf_range(14.0, 22.0), SHARD_GROUND_Y)
+	get_parent().add_child(shard)
 
 # Glimmer as Armor: an enemy swipe knocks glimmer off as shard pickups.
 # Returns true if glimmer was shed (attacker uses this to know the hit landed).

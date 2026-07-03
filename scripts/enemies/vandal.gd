@@ -184,7 +184,9 @@ func _process_attacks() -> void:
 	_wall_attack_timer = WALL_ATTACK_COOLDOWN
 	if _frame_target and is_instance_valid(_frame_target):
 		if global_position.distance_to(_frame_target.global_position) < FRAME_ATTACK_RANGE:
-			if _frame_target.has_method("knocked_dormant"):
+			if _frame_target.has_method("take_worker_hit"):
+				_frame_target.take_worker_hit()
+			elif _frame_target.has_method("knocked_dormant"):
 				_frame_target.knocked_dormant()
 			_frame_target = null
 			return

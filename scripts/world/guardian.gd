@@ -57,6 +57,10 @@ const WILDLIFE_HUNT_RANGE := 160.0
 const SWEEP_TRICKLE_INTERVAL := 4.0
 const SWEEP_TRICKLE_AMOUNT   := 2
 
+# Workers carry one kit — the first enemy hit steals it instead of them (EP-11)
+const KIT_VALUE := 15
+const KIT_SCENE := preload("res://scenes/world/glimmer_cache.tscn")
+
 const COLOR_DORMANT  := Color(0.35, 0.35, 0.35, 0.6)
 const COLOR_WAITING  := Color(0.75, 0.75, 0.75, 1.0)
 const COLOR_REDJACK  := Color(0.75, 0.12, 0.08, 1.0)
@@ -91,6 +95,7 @@ var _is_upgrading: bool = false
 var _tower: Node2D = null
 var _guard_scan_timer: float = 0.0
 var _trickle_timer: float = 0.0
+var _has_kit: bool = true
 
 func _ready() -> void:
 	add_to_group("frame_npc")
@@ -227,6 +232,7 @@ func _recruit() -> void:
 		_prompt_showing = false
 		GameState.action_prompt_hide.emit()
 	_open_locker()
+	_has_kit = true  # fresh kit on every reactivation
 	add_to_group("frame_following")
 	_sprite.modulate = COLOR_WAITING
 	_find_nearest_job_post()
@@ -242,6 +248,20 @@ func is_available_for_garrison() -> bool:
 		and state != State.FLEEING
 
 # ── Knocked dormant (enemy hit outside walls) ─────────────────────────────────
+
+# Layered demotion: workers lose their kit to the first hit and keep working;
+# the second hit knocks them dormant. Redjacks fight — no kit buffer.
+func take_worker_hit() -> void:
+	if _has_kit and not is_in_group("redjacks") and state != State.DORMANT:
+		_has_kit = false
+		var kit: Area2D = KIT_SCENE.instantiate() as Area2D
+		kit.set("glimmer_amount", KIT_VALUE)
+		kit.set("despawn_after", 20.0)
+		kit.global_position = Vector2(global_position.x + randf_range(-4.0, 4.0), 144.0)
+		get_parent().call_deferred("add_child", kit)
+		_flash_attack()
+		return
+	knocked_dormant()
 
 func knocked_dormant() -> void:
 	if _tower and is_instance_valid(_tower):

@@ -122,6 +122,9 @@ func hide_action_prompt(owner: Object) -> void:
 func is_prompt_owner(caller: Object) -> bool:
 	return _prompt_owner != null and is_instance_valid(_prompt_owner) and _prompt_owner == caller
 
+func has_active_prompt() -> bool:
+	return _prompt_owner != null and is_instance_valid(_prompt_owner)
+
 func new_run() -> void:
 	current_run += 1
 	glimmer = 0

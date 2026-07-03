@@ -23,9 +23,9 @@ const COLOR_SKY_DAY   := Color(0.42, 0.47, 0.55, 1)
 const COLOR_SKY_DUSK  := Color(0.55, 0.32, 0.18, 1)
 const COLOR_SKY_NIGHT := Color(0.08, 0.07, 0.18, 1)
 
-const DAY_DURATION_BASE := 60.0
-const DAY_DURATION_DEC  := 6.0
-const DAY_DURATION_MIN  := 28.0
+const DAY_DURATION_BASE := 90.0
+const DAY_DURATION_DEC  := 3.0
+const DAY_DURATION_MIN  := 60.0
 const DUSK_DURATION     := 12.0
 const MAX_WAVE_SIZE     := 14
 const NIGHT_PACK_SIZE   := 3

@@ -4,46 +4,83 @@ const MAX_HP         := 8
 const SHOOT_RANGE    := 110.0
 const SHOOT_COOLDOWN := 2.0
 const HITS_PER_HP    := 4  # tower is sturdier than a wall
+const BUILD_COST     := 150
+const BUILD_SWINGS   := 4
 
 const COLOR_HEALTHY    := Color(0.50, 0.44, 0.36, 1.0)
 const COLOR_DAMAGED    := Color(0.28, 0.22, 0.16, 1.0)
-const COLOR_GARRISONED := Color(0.30, 0.65, 0.35, 1.0)
+const COLOR_UNBUILT    := Color(0.35, 0.33, 0.30, 0.45)
 
 @onready var _sprite: ColorRect = $TowerSprite
 
+var _built: bool = false
+var _commissioned: bool = false
+var _build_progress: int = 0
 var _hp: int = MAX_HP
 var _hit_buffer: int = 0
 var _collapsed: bool = false
-var _garrison: Node2D = null
 var _shoot_timer: float = 0.0
+var _player_nearby: bool = false
 var _bullet_scene: PackedScene = null
 
 func _ready() -> void:
 	add_to_group("towers")
-	collision_layer = 4  # always solid — enemies target and attack towers
+	collision_layer = 0  # passable scaffold until built
 	collision_mask = 0
 	var bullet_path := "res://scenes/world/bullet.tscn"
 	if ResourceLoader.exists(bullet_path):
 		_bullet_scene = load(bullet_path)
 	_update_visual()
+	var zone: Area2D = $GarrisonZone
+	if zone:
+		zone.body_entered.connect(_on_body_entered)
+		zone.body_exited.connect(_on_body_exited)
 
 func _process(delta: float) -> void:
+	if not _built:
+		if _player_nearby and not _commissioned:
+			GameState.show_action_prompt(self, "[ SPACE ]  Build Tower  —  %d ◈" % BUILD_COST, 12)
+			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+				_commission()
+		return
 	_shoot_timer -= delta
 	if _shoot_timer <= 0.0:
 		_shoot_timer = SHOOT_COOLDOWN
 		_fire_at_nearest_enemy()
 
-# Garrison API kept for future use — towers currently auto-fire without it
-func garrison(redjack: Node2D) -> void:
-	_garrison = redjack
-	_update_visual()
+func _on_body_entered(body: Node2D) -> void:
+	if body.is_in_group("player"):
+		_player_nearby = true
 
-func release_garrison() -> void:
-	_garrison = null
-	_update_visual()
+func _on_body_exited(body: Node2D) -> void:
+	if body.is_in_group("player"):
+		_player_nearby = false
+		if not _built:
+			GameState.hide_action_prompt(self)
+
+func _commission() -> void:
+	if not GameState.spend_glimmer(BUILD_COST):
+		return
+	_commissioned = true
+	GameState.hide_action_prompt(self)
+	GameState.queue_build_job(self)
+
+# Builder interface — same contract as build_site.gd / ship.gd
+func add_progress(amount: int) -> bool:
+	if _built:
+		return true
+	_build_progress = mini(_build_progress + amount, BUILD_SWINGS)
+	if _build_progress >= BUILD_SWINGS:
+		_built = true
+		collision_layer = 4  # now solid — enemies can target and attack it
+		_update_visual()
+	return true
+
+func is_complete() -> bool:
+	return _built
 
 func take_damage(amount: int) -> void:
-	if _collapsed:
+	if _collapsed or not _built:
 		return
 	_hit_buffer += amount
 	if _hit_buffer < HITS_PER_HP:
@@ -52,19 +89,16 @@ func take_damage(amount: int) -> void:
 	_hp = maxi(_hp - 1, 0)
 	if _hp <= 0:
 		_collapsed = true
-		if _garrison and is_instance_valid(_garrison) and _garrison.has_method("exit_tower"):
-			_garrison.exit_tower()
-		_garrison = null
 		queue_free()
 		return
 	_update_visual()
 
 func _update_visual() -> void:
-	if _garrison != null and is_instance_valid(_garrison):
-		_sprite.color = COLOR_GARRISONED
-	else:
-		var t: float = float(_hp) / float(MAX_HP)
-		_sprite.color = COLOR_HEALTHY.lerp(COLOR_DAMAGED, 1.0 - t)
+	if not _built:
+		_sprite.color = COLOR_UNBUILT
+		return
+	var t: float = float(_hp) / float(MAX_HP)
+	_sprite.color = COLOR_HEALTHY.lerp(COLOR_DAMAGED, 1.0 - t)
 
 func _fire_at_nearest_enemy() -> void:
 	if not _bullet_scene:

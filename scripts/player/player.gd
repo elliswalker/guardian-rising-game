@@ -7,6 +7,14 @@ const LIMP_SPEED := 10.0
 const GRAVITY := 225.0
 const DOUBLE_TAP_WINDOW := 0.3
 
+# Glimmer as Armor — hits shed glimmer as shards instead of wounding
+const HIT_INVULN := 1.0
+const KNOCK_FRACTION := 0.10
+const KNOCK_MIN := 10
+const KNOCK_MAX := 50
+const SHARD_GROUND_Y := 144.0
+const CACHE_SCENE := preload("res://scenes/world/glimmer_cache.tscn")
+
 @onready var sparrow_sprite: CanvasItem = $SparrowSprite
 @onready var guardian_sprite: CanvasItem = $GuardianSprite
 
@@ -15,6 +23,7 @@ var is_hurt := false
 var _is_running: bool = false
 var _last_tap_dir: float = 0.0
 var _last_tap_time: float = -1.0
+var _invuln_timer: float = 0.0
 
 var _speed: float:
 	get:
@@ -40,6 +49,8 @@ func _link_ghost() -> void:
 	_ghost = get_tree().get_first_node_in_group("ghost") as Node2D
 
 func _physics_process(delta: float) -> void:
+	if _invuln_timer > 0.0:
+		_invuln_timer -= delta
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 
@@ -75,6 +86,38 @@ func _unhandled_input(event: InputEvent) -> void:
 func _update_facing(direction: float) -> void:
 	if direction != 0:
 		scale.x = sign(direction)
+
+# Glimmer as Armor: an enemy swipe knocks glimmer off as shard pickups.
+# Returns true if glimmer was shed (attacker uses this to know the hit landed).
+func take_hit() -> bool:
+	if _invuln_timer > 0.0 or GameState.glimmer <= 0:
+		return false
+	var knock: int = clampi(int(GameState.glimmer * KNOCK_FRACTION), KNOCK_MIN, KNOCK_MAX)
+	knock = mini(knock, GameState.glimmer)
+	GameState.glimmer -= knock
+	_invuln_timer = HIT_INVULN
+	_spawn_shards(knock)
+	_flash_hit()
+	return true
+
+func _spawn_shards(total: int) -> void:
+	var count: int = clampi(ceili(float(total) / 10.0), 2, 5)
+	var base: int = total / count
+	var remainder: int = total - base * count
+	for i in count:
+		var shard: Area2D = CACHE_SCENE.instantiate() as Area2D
+		shard.set("glimmer_amount", base + (remainder if i == 0 else 0))
+		shard.set("despawn_after", 20.0)
+		shard.global_position = Vector2(
+			global_position.x + randf_range(-28.0, 28.0), SHARD_GROUND_Y)
+		get_parent().add_child(shard)
+
+func _flash_hit() -> void:
+	if not guardian_sprite:
+		return
+	var tween: Tween = create_tween()
+	tween.tween_property(guardian_sprite, "modulate", Color(1.0, 0.3, 0.2, 1.0), 0.05)
+	tween.tween_property(guardian_sprite, "modulate", Color.WHITE, 0.3)
 
 func _on_ghost_captured() -> void:
 	has_ghost = false

@@ -3,7 +3,7 @@ extends CharacterBody2D
 # Fallen Vandal — faster and tougher than a Dreg. Feral only (no day wandering).
 # On hit: stumbles briefly, then continues. Does not flee.
 
-enum State { FERAL, HIT_STUN, RETREATING }
+enum State { FERAL, HIT_STUN, CARRYING_LOOT, RETREATING }
 
 const MOVE_SPEED          := 20.0
 const HIT_STUN_SPEED      := 5.0
@@ -18,9 +18,18 @@ const RETREAT_SPEED       := 24.0
 const RETREAT_EXIT_X      := 850.0
 const HIT_STUN_DURATION   := 0.35
 const HP_MAX              := 2
+# Glimmer as Armor
+const LOOT_DETECT_RANGE   := 75.0
+const LOOT_GRAB_RANGE     := 10.0
+const PLAYER_DETECT_RANGE := 80.0
+const PLAYER_ATTACK_RANGE := 16.0
+const SWIPE_COOLDOWN      := 1.2
+const GHOST_STRAY_DIST    := 40.0
+const CACHE_SCENE         := preload("res://scenes/world/glimmer_cache.tscn")
 
 const COLOR_DEFAULT  := Color.WHITE
 const COLOR_HIT      := Color(1.0, 0.25, 0.1, 1.0)
+const COLOR_LOOT     := Color(1.0, 0.85, 0.25, 1.0)
 
 @onready var _sprite: CanvasItem = $VandalSprite
 
@@ -31,6 +40,9 @@ var _frame_target: Node2D = null
 var _is_dying: bool = false
 var _wall_attack_timer: float = 0.0
 var _hit_stun_timer: float = 0.0
+var _loot_value: int = 0
+var _swipe_timer: float = 0.0
+var _player: Node2D = null
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -51,23 +63,65 @@ func retreat() -> void:
 
 func _physics_process(delta: float) -> void:
 	match _state:
-		State.FERAL:       _do_feral(delta)
-		State.HIT_STUN:    _do_hit_stun(delta)
-		State.RETREATING:  _do_retreat(delta)
+		State.FERAL:         _do_feral(delta)
+		State.HIT_STUN:      _do_hit_stun(delta)
+		State.CARRYING_LOOT: _do_retreat(delta)
+		State.RETREATING:    _do_retreat(delta)
+
+func _get_player() -> Node2D:
+	if not _player or not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("player") as Node2D
+	return _player
+
+func _ghost_is_takeable() -> bool:
+	if not _ghost or not is_instance_valid(_ghost) or _ghost.is_captured:
+		return false
+	if global_position.distance_to(_ghost.global_position) >= GHOST_AGGRO_RANGE:
+		return false
+	var player: Node2D = _get_player()
+	if player and GameState.glimmer > 0 \
+			and _ghost.global_position.distance_to(player.global_position) < GHOST_STRAY_DIST:
+		return false
+	return true
 
 func _do_feral(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
-	# Ghost capture takes priority
-	if _ghost and is_instance_valid(_ghost) and not _ghost.is_captured:
+	_swipe_timer -= delta
+	# 1. Ground loot
+	var loot: Node2D = _find_nearest_loot()
+	if loot:
+		var to_loot := loot.global_position - global_position
+		if abs(to_loot.x) < LOOT_GRAB_RANGE:
+			_grab_loot(loot)
+		else:
+			velocity.x = sign(to_loot.x) * MOVE_SPEED
+		move_and_slide()
+		return
+	# 2. Exposed ghost
+	if _ghost_is_takeable():
 		var to_ghost := _ghost.global_position - global_position
-		if global_position.distance_to(_ghost.global_position) < GHOST_AGGRO_RANGE:
-			if abs(to_ghost.x) < GHOST_CAPTURE_RANGE:
-				_ghost.capture(self)
-			else:
-				velocity.x = sign(to_ghost.x) * MOVE_SPEED
-			move_and_slide()
-			return
+		if abs(to_ghost.x) < GHOST_CAPTURE_RANGE:
+			_ghost.capture(self)
+		else:
+			velocity.x = sign(to_ghost.x) * MOVE_SPEED
+		move_and_slide()
+		return
+	# 3. Wealthy player
+	var player: Node2D = _get_player()
+	if player and GameState.glimmer > 0 \
+			and global_position.distance_to(player.global_position) < PLAYER_DETECT_RANGE:
+		var to_player := player.global_position - global_position
+		if abs(to_player.x) <= PLAYER_ATTACK_RANGE:
+			velocity.x = 0.0
+			if _swipe_timer <= 0.0:
+				_swipe_timer = SWIPE_COOLDOWN
+				player.call("take_hit")
+		else:
+			velocity.x = sign(to_player.x) * MOVE_SPEED
+		move_and_slide()
+		return
+	# 4. Frames / march
 	_frame_target = _find_nearest_frame()
 	if _frame_target and is_instance_valid(_frame_target):
 		var dist := global_position.distance_to(_frame_target.global_position)
@@ -79,6 +133,35 @@ func _do_feral(delta: float) -> void:
 	_wall_attack_timer -= delta
 	if _wall_attack_timer <= 0.0:
 		_process_attacks()
+
+func _find_nearest_loot() -> Node2D:
+	var nearest: Node2D = null
+	var nearest_dist: float = LOOT_DETECT_RANGE
+	for cache: Node in get_tree().get_nodes_in_group("glimmer_caches"):
+		var cn: Node2D = cache as Node2D
+		if not cn or not is_instance_valid(cn):
+			continue
+		var dist: float = global_position.distance_to(cn.global_position)
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest = cn
+	return nearest
+
+func _grab_loot(loot: Node2D) -> void:
+	_loot_value += int(loot.get("glimmer_amount"))
+	loot.queue_free()
+	_state = State.CARRYING_LOOT
+	_sprite.modulate = COLOR_LOOT
+
+func _drop_loot() -> void:
+	if _loot_value <= 0:
+		return
+	var shard: Area2D = CACHE_SCENE.instantiate() as Area2D
+	shard.set("glimmer_amount", _loot_value)
+	shard.set("despawn_after", 20.0)
+	shard.global_position = Vector2(global_position.x, 144.0)
+	get_parent().call_deferred("add_child", shard)
+	_loot_value = 0
 
 func _do_hit_stun(delta: float) -> void:
 	if not is_on_floor():
@@ -136,8 +219,9 @@ func take_damage(amount: int) -> void:
 	if _hp <= 0:
 		_die()
 		return
-	_state = State.HIT_STUN
-	_hit_stun_timer = HIT_STUN_DURATION
+	if _state == State.FERAL:  # don't strip carrying/retreating state on a survived hit
+		_state = State.HIT_STUN
+		_hit_stun_timer = HIT_STUN_DURATION
 	var tween := create_tween()
 	tween.tween_property(_sprite, "modulate", COLOR_HIT, 0.0)
 	tween.tween_property(_sprite, "modulate", COLOR_DEFAULT, 0.2)
@@ -147,6 +231,7 @@ func _die() -> void:
 	set_physics_process(false)
 	if _ghost and is_instance_valid(_ghost) and _ghost.is_captured and _ghost.carrier == self:
 		_ghost.release()
+	_drop_loot()  # stolen glimmer falls back to the ground, recoverable
 	GameState.add_glimmer(GLIMMER_DROP)
 	var tween := create_tween()
 	tween.tween_property(_sprite, "modulate", COLOR_HIT, 0.0)

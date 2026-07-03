@@ -68,6 +68,14 @@ func _commission() -> void:
 	GameState.hide_action_prompt(self)
 	GameState.queue_build_job(self)
 
+# Restore from a planet-state snapshot: instantly built at saved HP
+func restore(hp: int) -> void:
+	_built = true
+	_commissioned = false
+	_hp = clampi(hp, 1, MAX_HP)
+	collision_layer = 4
+	_update_visual()
+
 # Builder interface — same contract as build_site.gd / ship.gd
 func add_progress(amount: int) -> bool:
 	if _built:

@@ -22,7 +22,15 @@ signal portal_broken(faction: String)
 signal victory
 
 const GLIMMER_CAP := 1000
-const ENCAMPMENT_X: float = -100.0
+
+# Set by each level controller in _ready — Earth camp sits left, Cosmodrome center
+var encampment_x: float = -100.0
+var dual_front: bool = false
+
+const PLANET_SCENES: Dictionary = {
+	"earth": "res://scenes/world/earth_highway.tscn",
+	"cosmodrome": "res://scenes/world/cosmodrome.tscn",
+}
 
 var glimmer: int = 0:
 	set(value):
@@ -33,6 +41,16 @@ var glimmer: int = 0:
 var vaulted_glimmer: int = 0
 # Center-tier ladder: 1=builders, 2=+redjacks, 3=+sweepers/towers, 4=+vault (EP-09)
 var encampment_tier: int = 1
+
+# ── Planets (EP-06/07/14) ────────────────────────────────────────────────────
+var current_planet: String = "earth"
+var ship_repaired: bool = false
+var stone_unlocked: bool = false   # Cosmodrome foundry — gates wall/tower tier 3
+var metal_unlocked: bool = false   # future planet — gates tier 4
+var planets_cleared: Dictionary = {}  # planet -> true once its portals fall
+var planet_states: Dictionary = {}    # planet -> departure snapshot for away-sim
+# true while switching planets — tells the next level _ready NOT to reset the run
+var travel_mode: bool = false
 
 var is_ghost_captured := false
 var wave_number: int = 0
@@ -67,6 +85,19 @@ func vault_deposit(amount: int) -> void:
 func vault_withdraw(amount: int) -> void:
 	vaulted_glimmer = maxi(vaulted_glimmer - amount, 0)
 	vault_changed.emit(vaulted_glimmer)
+
+# Travel: the flight always lands the next morning. Day counter is global.
+func travel_to(planet: String) -> void:
+	travel_mode = true
+	current_planet = planet
+	day_number += 1
+	get_tree().change_scene_to_file(PLANET_SCENES[planet])
+
+func all_planets_cleared() -> bool:
+	for planet: String in PLANET_SCENES:
+		if not planets_cleared.get(planet, false):
+			return false
+	return true
 
 func on_ghost_captured() -> void:
 	is_ghost_captured = true
@@ -134,6 +165,13 @@ func new_run() -> void:
 	vaulted_glimmer = 0
 	vault_changed.emit(0)
 	encampment_tier = 1
+	current_planet = "earth"
+	ship_repaired = false
+	stone_unlocked = false
+	metal_unlocked = false
+	planets_cleared.clear()
+	planet_states.clear()
+	travel_mode = false
 	wave_number = 0
 	day_number = 0
 	redjack_jobs_available = 0

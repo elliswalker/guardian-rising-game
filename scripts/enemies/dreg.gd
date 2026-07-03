@@ -48,6 +48,12 @@ const COLOR_TETHERED := Color(0.70, 0.45, 1.0, 1.0)
 
 # Set to false before add_child to spawn as a daytime wanderer instead of a night attacker
 var _start_feral: bool = true
+# Direction of advance toward the base (-1 = spawned right marching left).
+# Spawners on dual-front planets set these before add_child.
+var march_dir: float = -1.0
+var exit_x: float = 850.0
+var wander_left: float = 290.0
+var wander_right: float = 800.0
 
 var _dreg_state: DregState = DregState.FERAL
 var _ghost: Node2D = null
@@ -136,9 +142,9 @@ func _process_wandering(delta: float) -> void:
 		_wander_timer = randf_range(WANDER_CHANGE_INTERVAL_MIN, WANDER_CHANGE_INTERVAL_MAX)
 		_wander_dir = [-1.0, 1.0][randi() % 2]
 	# Bounce off wander bounds
-	if global_position.x <= WANDER_LEFT_BOUND and _wander_dir < 0.0:
+	if global_position.x <= wander_left and _wander_dir < 0.0:
 		_wander_dir = 1.0
-	elif global_position.x >= WANDER_RIGHT_BOUND and _wander_dir > 0.0:
+	elif global_position.x >= wander_right and _wander_dir > 0.0:
 		_wander_dir = -1.0
 	velocity.x = _wander_dir * WANDER_SPEED
 	move_and_slide()
@@ -146,7 +152,7 @@ func _process_wandering(delta: float) -> void:
 func _process_hit_flee(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
-	velocity.x = HIT_FLEE_SPEED
+	velocity.x = signf(exit_x - global_position.x) * HIT_FLEE_SPEED
 	move_and_slide()
 	_hit_flee_timer -= delta
 	if _hit_flee_timer <= 0.0:
@@ -240,7 +246,7 @@ func _execute_feral_movement() -> void:
 		var dir: float = sign(_frame_target.global_position.x - global_position.x)
 		velocity.x = 0.0 if dist <= FRAME_ATTACK_RANGE else dir * MOVE_SPEED
 		return
-	velocity.x = -MOVE_SPEED
+	velocity.x = march_dir * MOVE_SPEED
 
 func _find_nearest_loot() -> Node2D:
 	var nearest: Node2D = null
@@ -282,7 +288,7 @@ func _process_carrying(delta: float) -> void:
 		_dreg_state = DregState.FERAL
 		_sprite.modulate =COLOR_DEFAULT
 		return
-	velocity.x = RETREAT_SPEED
+	velocity.x = signf(exit_x - global_position.x) * RETREAT_SPEED
 	move_and_slide()
 
 # ── Retreating (dawn) ─────────────────────────────────────────────────────────
@@ -290,9 +296,9 @@ func _process_carrying(delta: float) -> void:
 func _process_retreating(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
-	velocity.x = RETREAT_SPEED
+	velocity.x = signf(exit_x - global_position.x) * RETREAT_SPEED
 	move_and_slide()
-	if global_position.x > RETREAT_EXIT_X:
+	if absf(global_position.x - exit_x) < 12.0:
 		queue_free()
 
 # ── Attack resolution ─────────────────────────────────────────────────────────
@@ -330,7 +336,7 @@ func _find_nearest_working_frame() -> Node2D:
 				continue
 			if not fn.has_method("is_active_worker") or not fn.call("is_active_worker"):
 				continue
-			if fn.global_position.x < SAFE_ZONE_X:
+			if absf(fn.global_position.x - GameState.encampment_x) < 55.0:
 				continue
 			if pass_num == 0 and not fn.is_in_group("redjacks"):
 				continue

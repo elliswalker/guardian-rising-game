@@ -27,6 +27,8 @@ var _player_nearby: bool = false
 
 func _ready() -> void:
 	add_to_group("ship")
+	if GameState.ship_repaired:
+		_stage = 3  # repaired once, flightworthy everywhere
 	_update_visual()
 
 func _process(_delta: float) -> void:
@@ -96,7 +98,11 @@ func _update_visual() -> void:
 
 func _launch() -> void:
 	GameState.action_prompt_hide.emit()
-	# Fade ship out — placeholder for planet selection
+	GameState.ship_repaired = true
+	# Snapshot this planet so the away-simulation can run while we're gone
+	var world: Node = get_tree().get_first_node_in_group("world")
+	if world and world.has_method("save_planet_state"):
+		world.call("save_planet_state")
 	var tween: Tween = create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(_hull,   "modulate:a", 0.0, 1.2)
@@ -104,6 +110,5 @@ func _launch() -> void:
 	tween.tween_property(_glow,   "modulate:a", 2.0, 0.4)
 	tween.chain().tween_property(_glow, "modulate:a", 0.0, 0.6)
 	tween.chain().tween_callback(func() -> void:
-		# TODO: transition to planet selection scene
-		get_tree().reload_current_scene()
+		get_tree().change_scene_to_file("res://scenes/ui/planet_select.tscn")
 	)

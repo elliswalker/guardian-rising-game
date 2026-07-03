@@ -96,6 +96,8 @@ var _tower: Node2D = null
 var _guard_scan_timer: float = 0.0
 var _trickle_timer: float = 0.0
 var _has_kit: bool = true
+# Which front this redjack defends: +1 right, -1 left (dual-front planets)
+var _side: float = 1.0
 
 func _ready() -> void:
 	add_to_group("frame_npc")
@@ -238,6 +240,41 @@ func _recruit() -> void:
 	_find_nearest_job_post()
 	state = State.SEEKING_JOB_POST
 
+# Role name for planet-state snapshots; "" for dormant/waiting frames
+func worker_role() -> String:
+	if is_in_group("redjacks"):
+		return "redjack"
+	if is_in_group("builders"):
+		return "builder"
+	if is_in_group("sweeperbots"):
+		return "sweeperbot"
+	return ""
+
+# Instant role assignment when restoring a planet's saved state — no walking
+func restore_role(role: String) -> void:
+	if state != State.DORMANT:
+		return
+	_open_locker()
+	_has_kit = true
+	match role:
+		"redjack":
+			add_to_group("redjacks")
+			_sprite.modulate = COLOR_REDJACK
+			if not GameState.wave_changed.is_connected(_on_wave_changed):
+				GameState.wave_changed.connect(_on_wave_changed)
+			state = State.PATROL
+		"builder":
+			_is_builder = true
+			add_to_group("builders")
+			_sprite.modulate = COLOR_BUILDER
+			if not GameState.build_job_queued.is_connected(_on_build_job_queued):
+				GameState.build_job_queued.connect(_on_build_job_queued)
+			state = State.BUILDER_IDLE
+		"sweeperbot":
+			add_to_group("sweeperbots")
+			_sprite.modulate = COLOR_FARMER
+			state = State.SWEEPING
+
 func is_active_worker() -> bool:
 	return state != State.DORMANT and state != State.RETURNING_TO_SPAWN \
 		and state != State.GARRISONED
@@ -376,25 +413,33 @@ func _start_fleeing() -> void:
 	state = State.FLEEING
 
 func _flee_target_x() -> float:
+	var enc: float = GameState.encampment_x
 	if is_in_group("redjacks"):
-		# Fall back to just behind the nearest wall to the left, not all the way to the encampment
-		var best: float = GameState.ENCAMPMENT_X + 35.0
+		# Fall back just behind the nearest wall between me and camp, not all the way in
+		var best: float = enc + 35.0 * _side
+		var best_offset: float = -INF
 		for wall: Node in get_tree().get_nodes_in_group("walls"):
 			var wn: Node2D = wall as Node2D
-			if wn and is_instance_valid(wn) and wn.global_position.x < global_position.x - 8.0:
-				best = maxf(best, wn.global_position.x - 10.0)
+			if not wn or not is_instance_valid(wn):
+				continue
+			var wall_off: float = (wn.global_position.x - enc) * _side
+			var my_off: float = (global_position.x - enc) * _side
+			if wall_off > 0.0 and wall_off < my_off - 8.0 and wall_off > best_offset:
+				best_offset = wall_off
+				best = wn.global_position.x - 10.0 * _side
 		return best
-	return GameState.ENCAMPMENT_X + 35.0
+	return enc
 
 func _do_flee() -> void:
 	var safe_range: float = ENEMY_DETECT_RANGE if is_in_group("redjacks") else WORKER_FLEE_RANGE
 	if _find_nearest_unblocked_enemy(safe_range) == null:
 		_resume_after_flee()
 		return
-	velocity.x = -FLEE_SPEED
 	var target: float = _flee_target_x()
-	if global_position.x <= target:
+	if absf(global_position.x - target) < 4.0:
 		velocity.x = 0.0
+	else:
+		velocity.x = signf(target - global_position.x) * FLEE_SPEED
 
 func _resume_after_flee() -> void:
 	if _is_builder:
@@ -597,12 +642,24 @@ func _on_build_job_queued() -> void:
 # ── Patrol ────────────────────────────────────────────────────────────────────
 
 func _patrol_right_bound() -> float:
-	var furthest_x: float = 150.0
+	var enc: float = GameState.encampment_x
+	var bound: float = enc + 250.0
 	for wall: Node in get_tree().get_nodes_in_group("walls"):
 		var wn: Node2D = wall as Node2D
-		if wn:
-			furthest_x = maxf(furthest_x, wn.global_position.x - 15.0)
-	return furthest_x
+		if wn and wn.global_position.x > enc:
+			bound = maxf(bound, wn.global_position.x - 15.0)
+	return bound
+
+func _patrol_left_bound() -> float:
+	var enc: float = GameState.encampment_x
+	if not GameState.dual_front:
+		return enc + 25.0
+	var bound: float = enc - 250.0
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if wn and wn.global_position.x < enc:
+			bound = minf(bound, wn.global_position.x + 15.0)
+	return bound
 
 func _do_patrol(delta: float) -> void:
 	var enemy: Node2D = _find_nearest_enemy(ENEMY_DETECT_RANGE)
@@ -624,7 +681,7 @@ func _do_patrol(delta: float) -> void:
 		else:
 			velocity.x = sign(prey.global_position.x - global_position.x) * PATROL_SPEED
 		return
-	var left_bound: float = GameState.ENCAMPMENT_X + 25.0
+	var left_bound: float = _patrol_left_bound()
 	var right_bound: float = _patrol_right_bound()
 	if global_position.x >= right_bound:
 		_patrol_dir = -1.0
@@ -676,7 +733,7 @@ func _do_sweep(delta: float) -> void:
 	if _cache_target and is_instance_valid(_cache_target):
 		velocity.x = sign(_cache_target.global_position.x - global_position.x) * SWEEP_SPEED
 	else:
-		var diff: float = GameState.ENCAMPMENT_X - global_position.x
+		var diff: float = GameState.encampment_x - global_position.x
 		velocity.x = 0.0 if abs(diff) < 15.0 else sign(diff) * SWEEP_SPEED
 		# Idle at the encampment with nothing to collect — sweep the grounds
 		if abs(diff) < 15.0:
@@ -706,8 +763,8 @@ func _do_builder_idle(delta: float) -> void:
 	if _repair_scan_timer <= 0.0:
 		_repair_scan_timer = REPAIR_SCAN_INTERVAL
 		_check_for_repair_targets()
-	var left: float = GameState.ENCAMPMENT_X - 20.0
-	var right: float = GameState.ENCAMPMENT_X + 60.0
+	var left: float = GameState.encampment_x - (60.0 if GameState.dual_front else 20.0)
+	var right: float = GameState.encampment_x + 60.0
 	if global_position.x >= right:
 		_patrol_dir = -1.0
 	elif global_position.x <= left:
@@ -831,24 +888,49 @@ func _on_wave_changed(wave: int) -> void:
 	if wave >= 1 and (state == State.PATROL or state == State.ENGAGE):
 		_start_repositioning()
 
+# Outermost wall on THIS redjack's side of the camp; retreats one wall in
+# when the outer wall is a hit from falling.
 func _get_defend_target_x() -> float:
-	var walls: Array[Node] = get_tree().get_nodes_in_group("walls")
+	var enc: float = GameState.encampment_x
 	var sorted: Array[Node2D] = []
-	for wall: Node in walls:
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
 		var wn: Node2D = wall as Node2D
-		if wn and is_instance_valid(wn):
+		if wn and is_instance_valid(wn) and (wn.global_position.x - enc) * _side > 0.0:
 			sorted.append(wn)
 	if sorted.is_empty():
-		return 120.0
-	sorted.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.x > b.global_position.x)
+		return enc + 120.0 * _side
+	sorted.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return (a.global_position.x - enc) * _side > (b.global_position.x - enc) * _side)
 	var target: Node2D = sorted[0]
 	var outer_hp: Variant = target.get("_hp")
 	if outer_hp != null and int(outer_hp) <= 1 and sorted.size() > 1:
 		target = sorted[1]
-	return target.global_position.x - 10.0
+	return target.global_position.x - 10.0 * _side
+
+# On dual-front planets, join whichever front has fewer committed redjacks
+func _pick_side() -> void:
+	if not GameState.dual_front:
+		_side = 1.0
+		return
+	var right: int = 0
+	var left: int = 0
+	for r: Node in get_tree().get_nodes_in_group("redjacks"):
+		if r == self:
+			continue
+		var st: Variant = r.get("state")
+		var s: Variant = r.get("_side")
+		if st == null or s == null:
+			continue
+		if int(st) == State.REPOSITIONING or int(st) == State.DEFENDING:
+			if float(s) > 0.0:
+				right += 1
+			else:
+				left += 1
+	_side = 1.0 if right <= left else -1.0
 
 func _start_repositioning() -> void:
 	_target_enemy = null
+	_pick_side()
 	_wall_target_pos = Vector2(_get_defend_target_x(), global_position.y)
 	state = State.REPOSITIONING
 

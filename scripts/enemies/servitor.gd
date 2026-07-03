@@ -62,6 +62,9 @@ func _cast_tether() -> void:
 			if en.has_method("apply_tether"):
 				en.apply_tether(TETHER_DURATION)
 
+# Dual-portal planets: set before add_child to bind this servitor to one portal
+var bound_portal_x: float = INF
+
 func take_damage(amount: int) -> void:
 	if _is_dying:
 		return
@@ -78,8 +81,13 @@ func _die() -> void:
 	_is_dying = true
 	set_physics_process(false)
 	for portal: Node in get_tree().get_nodes_in_group("portals"):
-		if portal.has_method("break_portal"):
-			portal.call("break_portal")
+		if not portal.has_method("break_portal"):
+			continue
+		# Bound servitors (dual-portal planets) only break their own portal
+		var pn: Node2D = portal as Node2D
+		if bound_portal_x != INF and pn and absf(pn.global_position.x - bound_portal_x) > 120.0:
+			continue
+		portal.call("break_portal")
 	_launch_skiff()
 	var tween: Tween = create_tween()
 	tween.tween_property(_sprite, "modulate:a", 0.0, 1.8)

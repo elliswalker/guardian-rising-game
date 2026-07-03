@@ -41,7 +41,16 @@ func is_healthy() -> bool:
 	return _hp > 0 and (_hp % 2) == 0
 
 func can_upgrade() -> bool:
-	return is_healthy() and _hp < MAX_HP
+	if not is_healthy() or _hp >= MAX_HP:
+		return false
+	# Material gating (EP-06): tier 3 needs the Cosmodrome foundry unlock,
+	# tier 4 needs the metal unlock (future planet)
+	var next_tier: int = current_tier() + 1
+	if next_tier >= 3 and not GameState.stone_unlocked:
+		return false
+	if next_tier >= 4 and not GameState.metal_unlocked:
+		return false
+	return true
 
 func take_damage(amount: int) -> void:
 	if _collapsed:

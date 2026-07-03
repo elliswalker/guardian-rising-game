@@ -33,6 +33,9 @@ const COLOR_LOOT     := Color(1.0, 0.85, 0.25, 1.0)
 
 @onready var _sprite: CanvasItem = $VandalSprite
 
+var march_dir: float = -1.0
+var exit_x: float = 850.0
+
 var _hp: int = HP_MAX
 var _state: State = State.FERAL
 var _ghost: Node2D = null
@@ -128,7 +131,7 @@ func _do_feral(delta: float) -> void:
 		var dir: float = sign(_frame_target.global_position.x - global_position.x)
 		velocity.x = 0.0 if dist <= FRAME_ATTACK_RANGE else dir * MOVE_SPEED
 	else:
-		velocity.x = -MOVE_SPEED
+		velocity.x = march_dir * MOVE_SPEED
 	move_and_slide()
 	_wall_attack_timer -= delta
 	if _wall_attack_timer <= 0.0:
@@ -175,9 +178,9 @@ func _do_hit_stun(delta: float) -> void:
 func _do_retreat(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
-	velocity.x = RETREAT_SPEED
+	velocity.x = signf(exit_x - global_position.x) * RETREAT_SPEED
 	move_and_slide()
-	if global_position.x > RETREAT_EXIT_X:
+	if absf(global_position.x - exit_x) < 12.0:
 		queue_free()
 
 func _process_attacks() -> void:

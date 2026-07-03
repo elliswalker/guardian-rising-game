@@ -25,7 +25,8 @@ func break_portal() -> void:
 	if _broken:
 		return
 	_broken = true
-	GameState.portal_active = false
+	# The level controller decides portal_active — dual-portal planets
+	# only go quiet when ALL portals are down.
 	GameState.portal_broken.emit(faction)
 	var tween: Tween = create_tween()
 	tween.set_parallel(true)

@@ -50,6 +50,11 @@ const REPAIR_SCAN_INTERVAL := 0.5
 const UPGRADE_COST := 50
 # How often a defending redjack checks if its wall is still standing
 const GUARD_SCAN_INTERVAL := 0.5
+# Redjacks hunt wildlife on patrol — the Kingdom archer income role
+const WILDLIFE_HUNT_RANGE := 80.0
+# Idle sweeperbots near the encampment trickle passive glimmer
+const SWEEP_TRICKLE_INTERVAL := 4.0
+const SWEEP_TRICKLE_AMOUNT   := 2
 
 const COLOR_DORMANT  := Color(0.35, 0.35, 0.35, 0.6)
 const COLOR_WAITING  := Color(0.75, 0.75, 0.75, 1.0)
@@ -84,6 +89,7 @@ var _repair_scan_timer: float = 0.0
 var _is_upgrading: bool = false
 var _tower: Node2D = null
 var _guard_scan_timer: float = 0.0
+var _trickle_timer: float = 0.0
 
 func _ready() -> void:
 	add_to_group("frame_npc")
@@ -570,11 +576,25 @@ func _patrol_right_bound() -> float:
 			furthest_x = maxf(furthest_x, wn.global_position.x - 15.0)
 	return furthest_x
 
-func _do_patrol(_delta: float) -> void:
+func _do_patrol(delta: float) -> void:
 	var enemy: Node2D = _find_nearest_enemy(ENEMY_DETECT_RANGE)
 	if enemy:
 		_target_enemy = enemy
 		state = State.ENGAGE
+		return
+	# No threats — hunt wildlife for glimmer (income is the patrol's day job)
+	_attack_timer -= delta
+	var prey: Node2D = _find_nearest_wildlife()
+	if prey:
+		var dist: float = global_position.distance_to(prey.global_position)
+		if dist <= ATTACK_RANGE_ENGAGE:
+			velocity.x = 0.0
+			if _attack_timer <= 0.0:
+				_attack_timer = ATTACK_COOLDOWN
+				prey.call("take_damage", 1)
+				_flash_attack()
+		else:
+			velocity.x = sign(prey.global_position.x - global_position.x) * PATROL_SPEED
 		return
 	var left_bound: float = GameState.ENCAMPMENT_X + 25.0
 	var right_bound: float = _patrol_right_bound()
@@ -583,6 +603,19 @@ func _do_patrol(_delta: float) -> void:
 	elif global_position.x <= left_bound:
 		_patrol_dir = 1.0
 	velocity.x = _patrol_dir * PATROL_SPEED
+
+func _find_nearest_wildlife() -> Node2D:
+	var nearest: Node2D = null
+	var nearest_dist: float = WILDLIFE_HUNT_RANGE
+	for w: Node in get_tree().get_nodes_in_group("wildlife"):
+		var wn: Node2D = w as Node2D
+		if not wn or not is_instance_valid(wn):
+			continue
+		var dist: float = global_position.distance_to(wn.global_position)
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest = wn
+	return nearest
 
 # ── Engage ────────────────────────────────────────────────────────────────────
 
@@ -617,6 +650,13 @@ func _do_sweep(delta: float) -> void:
 	else:
 		var diff: float = GameState.ENCAMPMENT_X - global_position.x
 		velocity.x = 0.0 if abs(diff) < 15.0 else sign(diff) * SWEEP_SPEED
+		# Idle at the encampment with nothing to collect — sweep the grounds
+		if abs(diff) < 15.0:
+			_trickle_timer += delta
+			if _trickle_timer >= SWEEP_TRICKLE_INTERVAL:
+				_trickle_timer = 0.0
+				GameState.add_glimmer(SWEEP_TRICKLE_AMOUNT)
+				_flash_attack()
 
 func _find_nearest_cache() -> Node2D:
 	var nearest: Node2D = null

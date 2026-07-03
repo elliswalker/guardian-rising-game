@@ -11,6 +11,7 @@ const SHIP_SCENE      := preload("res://scenes/world/ship.tscn")
 const PORTAL_SCENE    := preload("res://scenes/world/portal.tscn")
 const SERVITOR_SCENE  := preload("res://scenes/enemies/servitor.tscn")
 const FLAG_SCENE      := preload("res://scenes/world/attack_flag.tscn")
+const WILDLIFE_SCENE  := preload("res://scenes/world/wildlife.tscn")
 
 const MAX_DORMANT_FRAMES := 6
 # Far-field positions — recruitable during day but exposed at night
@@ -104,6 +105,7 @@ func _start_day() -> void:
 		_update_sun()
 	_spawn_day_caches()
 	_spawn_day_dregs()
+	_spawn_day_wildlife()
 	if day > 1:
 		_try_spawn_frame()
 	GameState.day_started.emit(day)
@@ -255,6 +257,13 @@ func _spawn_day_dregs() -> void:
 		dreg.set("_start_feral", false)
 		dreg.global_position = Vector2(randf_range(DAY_DREG_MIN_X, DAY_DREG_MAX_X), 136.0)
 		add_child(dreg)
+
+func _spawn_day_wildlife() -> void:
+	var count: int = 3 + (1 if GameState.day_number >= 3 else 0)
+	for i in count:
+		var critter: Node2D = WILDLIFE_SCENE.instantiate() as Node2D
+		critter.position = Vector2(randf_range(220.0, 700.0), 147.0)
+		add_child(critter)
 
 func _spawn_dreg_pack(count: int) -> void:
 	var day: int = GameState.day_number

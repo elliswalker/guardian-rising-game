@@ -9,6 +9,12 @@ const COSTS: Dictionary = {
 	JobType.SWEEPERBOT: 100,
 	JobType.BUILDER:    125,
 }
+# Encampment tier required before this job type unlocks (EP-09)
+const TIER_REQUIRED: Dictionary = {
+	JobType.REDJACK:    2,
+	JobType.SWEEPERBOT: 3,
+	JobType.BUILDER:    1,
+}
 const LABELS: Dictionary = {
 	JobType.REDJACK:    "Redjack",
 	JobType.SWEEPERBOT: "Sweeperbot",
@@ -50,6 +56,10 @@ func _on_body_exited(body: Node2D) -> void:
 		GameState.hide_action_prompt(self)
 
 func _show_prompt() -> void:
+	if GameState.encampment_tier < TIER_REQUIRED[job_type]:
+		GameState.show_action_prompt(self,
+			"%s — Requires Encampment T%d" % [LABELS[job_type], TIER_REQUIRED[job_type]], 6)
+		return
 	var cost: int = COSTS[job_type]
 	var label: String = LABELS[job_type]
 	var available: int = get_tree().get_nodes_in_group("frame_waiting").size() \
@@ -61,6 +71,8 @@ func _show_prompt() -> void:
 		GameState.show_action_prompt(self, "[ SPACE ]  Create %s Job  —  %d ◈" % [label, cost], 6)
 
 func _try_create_job() -> void:
+	if GameState.encampment_tier < TIER_REQUIRED[job_type]:
+		return
 	if not GameState.spend_glimmer(COSTS[job_type]):
 		return
 	match job_type:

@@ -48,6 +48,9 @@ func _on_body_exited(body: Node2D) -> void:
 		GameState.hide_action_prompt(self)
 
 func _show_prompt() -> void:
+	if GameState.encampment_tier < 4:
+		GameState.show_action_prompt(self, "Vault — Requires Encampment T4", 6)
+		return
 	var stored: int = GameState.vaulted_glimmer
 	if mode == Mode.DEPOSIT:
 		var amount: int = mini(CHUNK, GameState.glimmer)
@@ -68,6 +71,8 @@ func _show_prompt() -> void:
 		GameState.show_action_prompt(self, "Vault empty", 6)
 
 func _do_action() -> void:
+	if GameState.encampment_tier < 4:
+		return
 	if mode == Mode.DEPOSIT:
 		var amount: int = mini(CHUNK, GameState.glimmer)
 		if amount > 0:

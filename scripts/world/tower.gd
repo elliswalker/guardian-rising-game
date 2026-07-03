@@ -39,9 +39,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _built:
 		if _player_nearby and not _commissioned:
-			GameState.show_action_prompt(self, "[ SPACE ]  Build Tower  —  %d ◈" % BUILD_COST, 12)
-			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
-				_commission()
+			if GameState.encampment_tier < 3:
+				GameState.show_action_prompt(self, "Tower — Requires Encampment T3", 12)
+			else:
+				GameState.show_action_prompt(self, "[ SPACE ]  Build Tower  —  %d ◈" % BUILD_COST, 12)
+				if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+					_commission()
 		return
 	_shoot_timer -= delta
 	if _shoot_timer <= 0.0:

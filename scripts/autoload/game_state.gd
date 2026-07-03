@@ -2,6 +2,7 @@ extends Node
 
 signal glimmer_changed(new_value: int)
 signal vault_changed(new_value: int)
+signal encampment_upgraded(new_tier: int)
 signal ghost_captured
 signal ghost_released
 signal game_over
@@ -30,6 +31,8 @@ var glimmer: int = 0:
 
 # Vaulted glimmer is safe from combat scatter but isn't armor (EP-10)
 var vaulted_glimmer: int = 0
+# Center-tier ladder: 1=builders, 2=+redjacks, 3=+sweepers/towers, 4=+vault (EP-09)
+var encampment_tier: int = 1
 
 var is_ghost_captured := false
 var wave_number: int = 0
@@ -130,6 +133,7 @@ func new_run() -> void:
 	glimmer = 0
 	vaulted_glimmer = 0
 	vault_changed.emit(0)
+	encampment_tier = 1
 	wave_number = 0
 	day_number = 0
 	redjack_jobs_available = 0

@@ -20,6 +20,11 @@ const COLOR_BROKEN: Array[Color] = [
 
 const HITS_PER_HP := 3  # dreg hits required to lose 1 HP; wood wall survives 6 hits
 
+# Player pays to commission an upgrade at the wall; a builder executes it
+const UPGRADE_COST := 50
+const TIER_NAMES: Array[String] = ["", "Wood", "Brick", "Metal", "Shield"]
+const INTERACT_RANGE := 22.0
+
 @onready var _sprite: Sprite2D = $WallSprite
 
 # Set this before add_child() to spawn a wall at the correct tier.
@@ -27,12 +32,47 @@ const HITS_PER_HP := 3  # dreg hits required to lose 1 HP; wood wall survives 6 
 var _hp: int = 2
 var _hit_buffer: int = 0  # accumulates hits; every HITS_PER_HP reduces _hp by 1
 var _collapsed: bool = false
+var _upgrade_commissioned: bool = false
+var _prompt_showing: bool = false
 
 func _ready() -> void:
 	add_to_group("walls")
 	collision_layer = 2
 	collision_mask = 0
 	_update_visual()
+
+func _process(_delta: float) -> void:
+	if _upgrade_commissioned or _collapsed or _hp >= MAX_HP or not is_healthy():
+		_drop_prompt()
+		return
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	if not player:
+		return
+	var pdist: float = global_position.distance_to(player.global_position)
+	if pdist >= INTERACT_RANGE:
+		_drop_prompt()
+		return
+	_prompt_showing = true
+	if can_upgrade():
+		GameState.show_action_prompt(self,
+			"[ SPACE ]  Reinforce Wall  —  %d ◈   (→ %s)" % [UPGRADE_COST, TIER_NAMES[current_tier() + 1]],
+			8, pdist)
+		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+			_commission_upgrade()
+	else:
+		GameState.show_action_prompt(self,
+			"Reinforce to %s — Requires Foundry unlock" % TIER_NAMES[current_tier() + 1], 8, pdist)
+
+func _drop_prompt() -> void:
+	if _prompt_showing:
+		_prompt_showing = false
+		GameState.hide_action_prompt(self)
+
+func _commission_upgrade() -> void:
+	if not GameState.spend_glimmer(UPGRADE_COST):
+		return
+	_upgrade_commissioned = true
+	_drop_prompt()
 
 func current_tier() -> int:
 	return ceili(float(maxi(_hp, 1)) / 2.0)
@@ -85,6 +125,8 @@ func upgrade() -> void:
 		return
 	_hit_buffer = 0
 	_hp = mini(_hp + 2, MAX_HP)
+	_upgrade_commissioned = false
+	Sound.play("thunk", 0.0, 1.1)
 	_update_visual()
 
 func _collapse() -> void:

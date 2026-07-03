@@ -558,8 +558,9 @@ func _on_dusk_triggered(_day: int) -> void:
 		_start_repositioning()
 
 func _on_day_started(_day: int) -> void:
-	# At dawn, redjacks leave the wall and go back on patrol — hunting is the day job
-	if is_in_group("redjacks") and state == State.DEFENDING:
+	# At dawn, redjacks leave the wall and go back on patrol — hunting is the
+	# day job. Assault orders also expire with the night.
+	if is_in_group("redjacks") and (state == State.DEFENDING or state == State.ASSAULTING):
 		_target_enemy = null
 		state = State.PATROL
 
@@ -807,7 +808,28 @@ func _check_for_repair_targets() -> void:
 		_build_timer = 0.0
 		state = State.REPAIRING
 		return
-	# Priority 2: chop a tree for glimmer (only if commissioned by player)
+	# Priority 2: commissioned wall upgrades — the player already paid
+	var nearest_up: Node2D = null
+	var nearest_up_dist: float = INF
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if not wn or not is_instance_valid(wn):
+			continue
+		if not bool(wn.get("_upgrade_commissioned")):
+			continue
+		if not wn.call("can_upgrade"):
+			continue
+		var d: float = global_position.distance_to(wn.global_position)
+		if d < nearest_up_dist:
+			nearest_up_dist = d
+			nearest_up = wn
+	if nearest_up:
+		_repair_target = nearest_up
+		_is_upgrading = true
+		_build_timer = 0.0
+		state = State.REPAIRING
+		return
+	# Priority 3: chop a tree for glimmer (only if commissioned by player)
 	var nearest_tree: Node2D = null
 	var nearest_tree_dist: float = REPAIR_SCAN_RANGE
 	for tree: Node in get_tree().get_nodes_in_group("trees"):

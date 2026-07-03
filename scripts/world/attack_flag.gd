@@ -6,14 +6,29 @@ extends Area2D
 
 var _player_nearby: bool = false
 var _activated: bool = false
+var _orig_banner: Color
+var _orig_label: String
 
 func _ready() -> void:
 	add_to_group("attack_flags")
 	collision_layer = 0
 	collision_mask = 8  # player
+	_orig_banner = _banner.color
+	_orig_label = _label.text if _label else ""
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	GameState.portal_broken.connect(_on_portal_broken)
+	GameState.day_started.connect(_on_day_started)
+
+# The charge is a one-day order — the flag resets at dawn until the planet falls
+func _on_day_started(_day: int) -> void:
+	if not GameState.portal_active:
+		return
+	_activated = false
+	GameState.is_attack_phase = false
+	_banner.color = _orig_banner
+	if _label:
+		_label.text = _orig_label
 
 func _process(_delta: float) -> void:
 	if _player_nearby and not _activated:
@@ -42,6 +57,9 @@ func _activate() -> void:
 		_label.text = "CHARGE"
 
 func _on_portal_broken(_faction: String) -> void:
+	# Only celebrate when the whole planet is quiet (dual-portal planets)
+	if GameState.portal_active:
+		return
 	if _label:
 		_label.text = "VICTORY"
 	_banner.color = Color(0.15, 0.70, 0.25, 1.0)

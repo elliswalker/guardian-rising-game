@@ -78,6 +78,8 @@ func _ready() -> void:
 	_ghost = get_tree().get_first_node_in_group("ghost")
 	if _start_feral:
 		_dreg_state = DregState.FERAL
+		# chitter carries in from off-screen — the warning arrives before the enemy
+		Sound.play("chitter", -8.0, randf_range(0.85, 1.15))
 	else:
 		_dreg_state = DregState.WANDERING
 		_wander_dir = [-1.0, 1.0][randi() % 2]

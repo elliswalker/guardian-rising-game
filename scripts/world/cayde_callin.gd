@@ -44,6 +44,7 @@ func _process(delta: float) -> void:
 		return
 	_timer = SHOT_INTERVAL
 	_shots_left -= 1
+	Sound.play("shot", 0.0, randf_range(0.95, 1.05))
 	_fire()
 
 func _fire() -> void:

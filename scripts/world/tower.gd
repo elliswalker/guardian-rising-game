@@ -85,6 +85,7 @@ func add_progress(amount: int) -> bool:
 		_built = true
 		collision_layer = 4  # now solid — enemies can target and attack it
 		_update_visual()
+		Sound.play("thunk", 0.0, 0.8)
 	return true
 
 func is_complete() -> bool:

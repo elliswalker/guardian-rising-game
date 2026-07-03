@@ -44,9 +44,17 @@ var _speed: float:
 		return WALK_SPEED
 
 var _ghost: Node2D = null
+var _hum: AudioStreamPlayer = null
 
 func _ready() -> void:
 	add_to_group("player")
+	# Sparrow hum — the hoofbeat: speed-reactive engine tone while riding
+	_hum = AudioStreamPlayer.new()
+	_hum.stream = preload("res://assets/audio/sparrow_hum.wav")
+	_hum.volume_db = -14.0
+	add_child(_hum)
+	_hum.finished.connect(_hum.play)  # loop
+	_hum.play()
 	collision_layer = 8  # bit 3 — not seen by guardians (mask=1) or enemies (mask=3)
 	collision_mask = 1   # still detects ground on layer 1
 	GameState.ghost_captured.connect(_on_ghost_captured)
@@ -71,6 +79,21 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_update_facing(direction)
+	_update_hum()
+
+func _update_hum() -> void:
+	if not _hum:
+		return
+	if not has_ghost:
+		if _hum.playing:
+			_hum.stop()
+		return
+	if not _hum.playing:
+		_hum.play()
+	# idle purr → working hum with speed
+	var speed_frac: float = clampf(absf(velocity.x) / SPARROW_SPEED, 0.0, 1.0)
+	_hum.pitch_scale = 0.9 + speed_frac * 0.35
+	_hum.volume_db = -18.0 + speed_frac * 6.0
 
 func _check_double_tap() -> void:
 	var tap_dir: float = 0.0
@@ -133,6 +156,7 @@ func take_hit() -> bool:
 	_invuln_timer = HIT_INVULN
 	_spawn_shards(knock)
 	_flash_hit()
+	Sound.play("scatter")
 	return true
 
 func _spawn_shards(total: int) -> void:

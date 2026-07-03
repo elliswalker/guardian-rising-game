@@ -112,6 +112,7 @@ func _update_visual() -> void:
 			_glow.modulate.a = 0.80
 
 func _spawn_wall() -> void:
+	Sound.play("thunk")
 	var wall: Node2D = WALL_SCENE.instantiate() as Node2D
 	# Set _hp before add_child so _ready()/_update_visual() picks it up immediately.
 	wall.set("_hp", _remembered_tier * 2)

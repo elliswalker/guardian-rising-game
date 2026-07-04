@@ -23,9 +23,11 @@ const DIRS: Array[String] = [
 const HORIZON_Y := 155.0    # layer bottoms sit here (ground line is 150)
 const TARGET_HEIGHT := 380.0  # world-units of sky the nearest layer should cover
 const GROUP := "parallax_art"
+const FG_SCALE := 2.0       # fg strips are authored at half-res like the layers
+const FG_BOTTOM_Y := 188.0  # fg strip bottoms sit below the ground line
 
 static func build(parallax_bg: ParallaxBackground, planet: String) -> void:
-	var paths: Array[String] = _find_layers(planet)
+	var paths: Array[String] = _find_layers(planet, "layer_")
 	for i in paths.size():
 		var texture: Texture2D = load(paths[i])
 		if not texture:
@@ -47,6 +49,40 @@ static func build(parallax_bg: ParallaxBackground, planet: String) -> void:
 		sprite.add_to_group(GROUP)
 		layer.add_child(sprite)
 		parallax_bg.add_child(layer)
+	_build_foreground(parallax_bg, planet)
+
+## Foreground ground cover (fg_*.png) rides IN FRONT of the world: its own
+## ParallaxBackground at canvas layer 0 (above the default canvas, below the
+## HUD at layer 1) with motion_scale > 1 so it slides past faster than play.
+static func _build_foreground(parallax_bg: ParallaxBackground, planet: String) -> void:
+	var paths: Array[String] = _find_layers(planet, "fg_")
+	if paths.is_empty():
+		return
+	var parent: Node = parallax_bg.get_parent()
+	if not parent:
+		return
+	var fg_bg := ParallaxBackground.new()
+	fg_bg.name = "ForegroundParallax"
+	fg_bg.layer = 0
+	for i in paths.size():
+		var texture: Texture2D = load(paths[i])
+		if not texture:
+			continue
+		var layer := ParallaxLayer.new()
+		layer.motion_scale = Vector2(1.3 + 0.15 * float(i), 1.0)
+		var h: float = float(texture.get_height())
+		var w: float = float(texture.get_width())
+		layer.motion_mirroring = Vector2(w * FG_SCALE, 0.0)
+		var sprite := Sprite2D.new()
+		sprite.texture = texture
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		sprite.centered = false
+		sprite.scale = Vector2(FG_SCALE, FG_SCALE)
+		sprite.position = Vector2(0.0, FG_BOTTOM_Y - h * FG_SCALE)
+		sprite.add_to_group(GROUP)
+		layer.add_child(sprite)
+		fg_bg.add_child(layer)
+	parent.add_child.call_deferred(fg_bg)
 
 ## Kingdom's trick: the color of the hour lands on every layer, not just the
 ## sky. Call from the level's _transition_sky with the same target color.
@@ -59,7 +95,7 @@ static func tint(tree: SceneTree, sky_color: Color, duration: float) -> void:
 		var tween: Tween = ci.create_tween()
 		tween.tween_property(ci, "modulate", target, duration).set_ease(Tween.EASE_IN_OUT)
 
-static func _find_layers(planet: String) -> Array[String]:
+static func _find_layers(planet: String, prefix: String) -> Array[String]:
 	var found: Dictionary = {}
 	for dir_pattern: String in DIRS:
 		var dir_path: String = dir_pattern % planet
@@ -68,7 +104,7 @@ static func _find_layers(planet: String) -> Array[String]:
 		for file: String in DirAccess.get_files_at(dir_path):
 			# exported PCKs list foo.png.import / foo.png.remap — normalize
 			var name: String = file.replace(".import", "").replace(".remap", "")
-			if not name.ends_with(".png"):
+			if not name.ends_with(".png") or not name.begins_with(prefix):
 				continue
 			var full: String = dir_path + name
 			if ResourceLoader.exists(full):

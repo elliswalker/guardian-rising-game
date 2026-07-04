@@ -9,7 +9,10 @@ Layers per planet (far -> near):
   layer_0  celestial / sky detail   (slowest)
   layer_1  distant ridge / horizon
   layer_2  landmark silhouettes
-  layer_3  near ground scatter      (fastest)
+  layer_3  near ground scatter
+  layer_4  immediate background     (cars/containers/bones/barricades)
+  fg_0     FOREGROUND ground cover  (320x32 strip, rendered in FRONT of
+           the world by ParallaxLoader at motion_scale > 1)
 
 Run from Game/:  python tools/gen_parallax_backgrounds.py
 """
@@ -239,9 +242,195 @@ def gen_mars():
     save(im, "mars", "layer_3.png")
 
 
+# ── layer_4: immediate background props (nearest silhouette band) ────────────
+FG_H = 32  # foreground strip height
+
+
+def fg_canvas():
+    return Image.new("RGBA", (W, FG_H), (0, 0, 0, 0))
+
+
+def fg_px(im, x, y, c):
+    if 0 <= x < W and 0 <= y < FG_H:
+        im.putpixel((int(x), int(y)), c)
+
+
+def fg_rect(im, x0, y0, x1, y1, c):
+    for y in range(max(0, int(y0)), min(FG_H, int(y1) + 1)):
+        for x in range(max(0, int(x0)), min(W, int(x1) + 1)):
+            im.putpixel((x, y), c)
+
+
+def dead_tree(im, x, base_y, hgt, c):
+    rect(im, x, base_y - hgt, x + 1, base_y, c)
+    for i, (dx, dy, ln) in enumerate([(-1, -hgt + 4, 5), (2, -hgt + 8, 6), (-1, -hgt + 13, 4)]):
+        step = -1 if dx < 0 else 1
+        for j in range(ln):
+            px(im, x + dx + j * step, base_y + dy - j // 2, c)
+
+
+def car_husk(im, x, ground, c, hl):
+    """Rusted car silhouette ~26x10, roof caved."""
+    rect(im, x, ground - 6, x + 25, ground, c)          # body
+    rect(im, x + 5, ground - 10, x + 19, ground - 6, c)  # cabin
+    rect(im, x + 7, ground - 9, x + 11, ground - 7, hl)  # window hole
+    rect(im, x + 14, ground - 9, x + 17, ground - 7, hl)
+    px(im, x + 2, ground + 1, c)                         # sagged tires
+    px(im, x + 22, ground + 1, c)
+
+
+def gen_layer4():
+    # EARTH — dead trees, car husks, guardrail, puddle glints
+    im = canvas()
+    ridge(im, 172, 3, [(4, 1.0), (10, 0.4)], (42, 47, 60, 255), rough=1.0)
+    C, HL = (42, 47, 60, 255), (30, 34, 44, 255)
+    for x in [24, 168, 262]:
+        car_husk(im, x, 170, C, HL)
+    for x in [72, 130, 218, 300]:
+        dead_tree(im, x, 171, random.randint(22, 34), C)
+    for x0 in [95, 235]:                                   # guardrail run
+        rect(im, x0, 165, x0 + 30, 166, C)
+        for gx in range(x0, x0 + 30, 6):
+            rect(im, gx, 166, gx, 170, C)
+    for x0, w in [(52, 14), (200, 10), (285, 8)]:          # puddle glints
+        rect(im, x0, 175, x0 + w, 175, (96, 112, 138, 160))
+    save(im, "earth", "layer_4.png")
+
+    # COSMODROME — container stacks, cable spools, sagging power poles
+    im = canvas()
+    ridge(im, 172, 3, [(5, 1.0), (11, 0.4)], (48, 45, 47, 255), rough=1.0)
+    C, HL = (48, 45, 47, 255), (36, 33, 35, 255)
+    for x, two_high in [(30, True), (140, False), (238, True)]:
+        rect(im, x, 160, x + 34, 171, C)                   # container
+        for gx in range(x + 3, x + 34, 5):
+            rect(im, gx, 161, gx, 170, HL)                 # corrugation
+        if two_high:
+            rect(im, x + 6, 149, x + 40 - 6, 159, C)
+            for gx in range(x + 9, x + 34, 5):
+                rect(im, gx, 150, gx, 158, HL)
+    for x in [100, 210, 305]:                              # cable spools
+        for dy in range(-5, 6):
+            half = int((25 - dy * dy) ** 0.5 * 0.55)
+            rect(im, x - half, 166 + dy, x + half, 166 + dy, C)
+        rect(im, x, 162, x, 170, HL)
+    for x in [75, 190]:                                    # leaning poles
+        for i in range(18):
+            px(im, x + i // 6, 170 - i, C)
+        rect(im, x - 3, 154, x + 6, 154, C)
+    save(im, "cosmodrome", "layer_4.png")
+
+    # MOON — colossal rib arcs and monolith slabs
+    im = canvas()
+    ridge(im, 172, 3, [(4, 1.0), (9, 0.5)], (26, 28, 38, 255), rough=1.0)
+    C = (26, 28, 38, 255)
+    for x, hgt, bend in [(45, 42, 9), (110, 30, 7), (200, 48, 11), (280, 36, 8)]:
+        for i in range(hgt):                               # curving rib
+            xo = int(bend * (i / hgt) ** 2)
+            rect(im, x + xo, 171 - i, x + xo + 2, 171 - i, C)
+        px(im, x + bend, 171 - hgt - 1, (110, 220, 125, 120))
+    for x, w, top in [(150, 9, 148), (250, 6, 154)]:       # slabs
+        rect(im, x, top, x + w, 171, C)
+        rect(im, x + 2, top - 3, x + w - 2, top, C)
+    save(im, "moon", "layer_4.png")
+
+    # MARS — sandbag barricades, crashed pod, comm antenna
+    im = canvas()
+    ridge(im, 172, 3, [(5, 1.0), (12, 0.4)], (52, 34, 28, 255), rough=1.2)
+    C, HL = (52, 34, 28, 255), (40, 26, 22, 255)
+    for x in [40, 150, 260]:                               # sandbag stacks
+        for row, (n, y) in enumerate([(5, 168), (4, 164), (3, 160)]):
+            for i in range(n):
+                rect(im, x + row * 2 + i * 7, y, x + row * 2 + i * 7 + 5, y + 3, C)
+                px(im, x + row * 2 + i * 7 + 2, y + 1, HL)
+    px_x = 210                                             # crashed pod, fin up
+    rect(im, px_x, 158, px_x + 16, 171, C)
+    for i in range(10):
+        rect(im, px_x + 16 + i, 158 + i, px_x + 17 + i, 171, C)
+    rect(im, px_x + 4, 150, px_x + 6, 158, C)              # fin
+    px(im, px_x + 5, 148, (255, 160, 60, 140))             # beacon
+    ax = 105                                               # comm antenna
+    rect(im, ax, 146, ax + 1, 171, C)
+    for dy in (150, 156, 162):
+        rect(im, ax - 4, dy, ax + 5, dy, HL)
+    save(im, "mars", "layer_4.png")
+
+
+# ── fg_0: foreground ground-cover strips (drawn IN FRONT of the world) ───────
+def gen_foregrounds():
+    # EARTH — grass tufts + rubble, deep blue-black
+    im = fg_canvas()
+    C = (20, 24, 33, 235)
+    fg_rect(im, 0, FG_H - 3, W - 1, FG_H - 1, C)
+    for x in range(0, W, 7):                                # ragged soil lip
+        if random.random() < 0.6:
+            fg_px(im, x + random.randint(0, 4), FG_H - 4, C)
+    for _ in range(26):                                     # grass tufts
+        x = random.randint(2, W - 3)
+        h = random.randint(4, 9)
+        for i in range(h):
+            fg_px(im, x + (1 if i > h - 3 else 0), FG_H - 3 - i, C)
+        fg_px(im, x - 1, FG_H - 4, C)
+    for _ in range(7):                                      # rubble chunks
+        x = random.randint(4, W - 8)
+        fg_rect(im, x, FG_H - 7, x + random.randint(3, 6), FG_H - 3, C)
+    save(im, "earth", "fg_0.png")
+
+    # COSMODROME — scrap plates + weeds, rusted near-black
+    im = fg_canvas()
+    C = (26, 22, 21, 235)
+    fg_rect(im, 0, FG_H - 3, W - 1, FG_H - 1, C)
+    for _ in range(9):                                      # leaning scrap plates
+        x = random.randint(4, W - 12)
+        w_p = random.randint(5, 10)
+        for i in range(w_p):
+            fg_rect(im, x + i, FG_H - 4 - i // 2, x + i, FG_H - 3, C)
+    for _ in range(18):                                     # weeds
+        x = random.randint(2, W - 3)
+        h = random.randint(3, 7)
+        for i in range(h):
+            fg_px(im, x, FG_H - 3 - i, C)
+    save(im, "cosmodrome", "fg_0.png")
+
+    # MOON — regolith rocks + bone shards, void blue
+    im = fg_canvas()
+    C = (14, 15, 23, 235)
+    fg_rect(im, 0, FG_H - 3, W - 1, FG_H - 1, C)
+    for _ in range(14):                                     # rocks
+        x = random.randint(3, W - 9)
+        w_r = random.randint(3, 7)
+        h_r = max(2, w_r - 2)
+        fg_rect(im, x, FG_H - 3 - h_r, x + w_r, FG_H - 3, C)
+        fg_px(im, x + 1, FG_H - 4 - h_r, C)
+    for _ in range(8):                                      # bone shards jutting
+        x = random.randint(2, W - 4)
+        h = random.randint(5, 10)
+        for i in range(h):
+            fg_px(im, x + i // 4, FG_H - 3 - i, C)
+    save(im, "moon", "fg_0.png")
+
+    # MARS — dust drifts + rebar, deep rust
+    im = fg_canvas()
+    C = (30, 18, 15, 235)
+    fg_rect(im, 0, FG_H - 3, W - 1, FG_H - 1, C)
+    for _ in range(10):                                     # dust drift mounds
+        x = random.randint(4, W - 20)
+        w_d = random.randint(9, 18)
+        for i in range(w_d):
+            h = int((1 - abs(i - w_d / 2) / (w_d / 2)) * random.randint(3, 5))
+            fg_rect(im, x + i, FG_H - 3 - h, x + i, FG_H - 3, C)
+    for _ in range(7):                                      # bent rebar
+        x = random.randint(2, W - 4)
+        h = random.randint(4, 8)
+        for i in range(h):
+            fg_px(im, x + (i // 3), FG_H - 3 - i, C)
+    save(im, "mars", "fg_0.png")
+
+
 if __name__ == "__main__":
     gen_earth()
     gen_cosmodrome()
     gen_moon()
     gen_mars()
+    gen_layer4()
+    gen_foregrounds()
     print("done")

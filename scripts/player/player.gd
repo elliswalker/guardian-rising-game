@@ -32,6 +32,7 @@ var _last_tap_time: float = -1.0
 var _invuln_timer: float = 0.0
 var _pour_hold: float = 0.0
 var _pour_timer: float = 0.0
+var _facing: float = 1.0
 
 var _blight_timer: float = 0.0
 
@@ -133,9 +134,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ability") and _ghost and is_instance_valid(_ghost):
 		_ghost.call("use_ability")
 
+# Flip the SPRITES, never the body — negative scale on a physics root gets
+# re-normalized into rotation every frame and the node jitters (and it was
+# flipping the camera too).
 func _update_facing(direction: float) -> void:
-	if direction != 0:
-		scale.x = sign(direction)
+	if direction == 0:
+		return
+	_facing = signf(direction)
+	var g: Sprite2D = guardian_sprite as Sprite2D
+	if g:
+		g.flip_h = _facing < 0.0
+	var s: Sprite2D = sparrow_sprite as Sprite2D
+	if s:
+		s.flip_h = _facing < 0.0
 
 # Pour: hold Action away from any interactable to drop glimmer at your feet.
 # Enemies prioritize ground loot — this is the deliberate bribe.
@@ -158,9 +169,8 @@ func _drop_shard(value: int) -> void:
 	shard.set("glimmer_amount", value)
 	shard.set("despawn_after", 20.0)
 	# toss ahead of the player, clear of the pickup overlap
-	var facing: float = signf(scale.x) if scale.x != 0.0 else 1.0
 	shard.global_position = Vector2(
-		global_position.x + facing * randf_range(14.0, 22.0), SHARD_GROUND_Y)
+		global_position.x + _facing * randf_range(14.0, 22.0), SHARD_GROUND_Y)
 	get_parent().add_child(shard)
 
 # Glimmer as Armor: an enemy swipe knocks glimmer off as shard pickups.

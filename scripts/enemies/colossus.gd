@@ -10,8 +10,8 @@ const FLAME_RANGE      := 55.0
 const FLAME_INTERVAL   := 3.5
 const FLAME_PUSH_FORCE := 80.0  # x-velocity applied to targets pushed left
 const GRAVITY          := 225.0
-const PATROL_LEFT_X    := 640.0
-const PATROL_RIGHT_X   := 760.0
+# Patrol anchors to the spawn point — the siege-master holds its launch site
+const PATROL_HALF_SPAN := 60.0
 
 const COLOR_HEALTHY := Color(0.72, 0.35, 0.12, 1.0)
 const COLOR_DAMAGED := Color(0.45, 0.20, 0.06, 1.0)
@@ -23,12 +23,17 @@ var _hp: int = HP_MAX
 var _is_dying: bool = false
 var _flame_timer: float = FLAME_INTERVAL * 0.5
 var _patrol_dir: float = -1.0
+var _home_x: float = 0.0
+
+# Dual-site planets: set before add_child to bind this colossus to one site
+var bound_portal_x: float = INF
 
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("bosses")
 	collision_layer = 32
 	collision_mask = 1  # walks on ground
+	_home_x = global_position.x
 
 func _physics_process(delta: float) -> void:
 	if _is_dying:
@@ -36,9 +41,9 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 	velocity.x = _patrol_dir * MOVE_SPEED
-	if global_position.x <= PATROL_LEFT_X:
+	if global_position.x <= _home_x - PATROL_HALF_SPAN:
 		_patrol_dir = 1.0
-	elif global_position.x >= PATROL_RIGHT_X:
+	elif global_position.x >= _home_x + PATROL_HALF_SPAN:
 		_patrol_dir = -1.0
 	move_and_slide()
 	_flame_timer -= delta
@@ -78,8 +83,13 @@ func _die() -> void:
 	_is_dying = true
 	set_physics_process(false)
 	for portal: Node in get_tree().get_nodes_in_group("portals"):
-		if portal.has_method("break_portal"):
-			portal.call("break_portal")
+		if not portal.has_method("break_portal"):
+			continue
+		# Bound colossi (dual-site Mars) only close their own launch site
+		var pn: Node2D = portal as Node2D
+		if bound_portal_x != INF and pn and absf(pn.global_position.x - bound_portal_x) > 120.0:
+			continue
+		portal.call("break_portal")
 	# fuel tank goes up
 	var boom: Node2D = preload("res://scenes/world/ability_shockwave.tscn").instantiate() as Node2D
 	boom.global_position = global_position

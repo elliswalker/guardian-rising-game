@@ -1,9 +1,10 @@
 extends Node2D
 
 # Mars — planet 4. Cabal siege warfare: enemies don't march in from the
-# horizon, they arrive in DROP PODS that slam into the mid-field. Distance
-# buys you nothing here — the war lands on top of you.
-# Kill the Incendiary Colossus at the launch site to end the siege.
+# horizon, they arrive in DROP PODS that slam into the mid-field — on BOTH
+# flanks now (#30). Distance buys you nothing here — the war lands on top
+# of you, from two launch sites at once.
+# Kill each Incendiary Colossus at its launch site to end the siege.
 # The Osiris shrine grants Well of Radiance.
 
 const LEGIONARY_SCENE := preload("res://scenes/enemies/legionary.tscn")
@@ -22,7 +23,10 @@ const PICKUP_SCENE    := preload("res://scenes/world/pickup.tscn")
 const PLANET_NAME := "mars"
 
 const MAX_DORMANT_FRAMES := 6
-const FRAME_SPAWN_XS: Array[float] = [195.0, 255.0, 320.0, 400.0, 470.0, 545.0]
+const FRAME_SPAWN_XS: Array[float] = [-460.0, -310.0, -190.0, 195.0, 320.0, 470.0]
+
+const EXIT_RIGHT := 1150.0
+const EXIT_LEFT  := -1150.0
 
 const COLOR_SKY_DAY   := Color(0.52, 0.34, 0.24, 1)   # dusty red
 const COLOR_SKY_DUSK  := Color(0.45, 0.20, 0.12, 1)
@@ -43,7 +47,8 @@ const SPIKE_MULTIPLIER     := 2.0
 const QUIET_NIGHT_DURATION := 10.0
 const COUNTERATTACK_MIN    := 7
 
-# Drop-pod siege: pods land INSIDE the field, 2-3 enemies each
+# Drop-pod siege: pods land INSIDE the field, 2-3 enemies each.
+# X bounds are magnitudes — mirrored across both flanks.
 const POD_MIN_X    := 430.0
 const POD_MAX_X    := 860.0
 const POD_SIZE_MIN := 2
@@ -68,6 +73,8 @@ var _spike_this_night: bool = false
 var _quiet_night_pending: bool = false
 var _quiet_this_night: bool = false
 var _clear_countdown: float = -1.0
+var _next_spawn_side: float = 1.0
+var _portals_broken: int = 0
 var _layout_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -79,8 +86,8 @@ func _ready() -> void:
 	else:
 		GameState.new_run()
 	GameState.current_planet = PLANET_NAME
-	GameState.encampment_x = -100.0
-	GameState.dual_front = false
+	GameState.encampment_x = 0.0
+	GameState.dual_front = true
 	GameState.portal_active = not GameState.planets_cleared.get(PLANET_NAME, false)
 	GameState.portal_broken.connect(_on_portal_broken)
 	_layout_rng.seed = hash(PLANET_NAME) + GameState.current_run * 7919
@@ -127,23 +134,42 @@ func _start_day() -> void:
 	_try_spawn_frame()
 	GameState.day_started.emit(day)
 
-# Psion scavengers prowl the field by day, racing your sweeperbots for
+# Psion scavengers prowl both flanks by day, racing your sweeperbots for
 # caches. They don't fight until dusk — but every cache they grab is yours lost.
 func _spawn_day_scavengers() -> void:
 	if GameState.day_number <= 1:
 		return
-	var min_x: float = 350.0
-	for wall: Node in get_tree().get_nodes_in_group("walls"):
-		var wn: Node2D = wall as Node2D
-		if wn and is_instance_valid(wn):
-			min_x = maxf(min_x, wn.global_position.x + 40.0)
-	if min_x >= 700.0:
-		return  # walls own the field
 	for i in 2:
+		var side: float = 1.0 if i % 2 == 0 else -1.0
 		var psion: CharacterBody2D = PSION_SCENE.instantiate() as CharacterBody2D
 		psion.set("day_scavenger", true)
-		psion.global_position = Vector2(randf_range(min_x, 720.0), 136.0)
+		_configure_side(psion, side)
+		if side > 0.0:
+			var min_x: float = _frontier(1.0, 350.0)
+			if min_x >= 700.0:
+				continue  # walls own that flank
+			psion.global_position = Vector2(randf_range(min_x, 720.0), 136.0)
+		else:
+			var max_x: float = _frontier(-1.0, -350.0)
+			if max_x <= -700.0:
+				continue
+			psion.global_position = Vector2(randf_range(-720.0, max_x), 136.0)
 		add_child(psion)
+
+# Scavengers stay beyond that side's outermost wall
+func _frontier(side: float, base: float) -> float:
+	var frontier: float = base
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if not wn or not is_instance_valid(wn):
+			continue
+		if wn.global_position.x * side <= 0.0:
+			continue
+		if side > 0.0:
+			frontier = maxf(frontier, wn.global_position.x + 40.0)
+		else:
+			frontier = minf(frontier, wn.global_position.x - 40.0)
+	return frontier
 
 func _process_day(delta: float) -> void:
 	_day_timer -= delta
@@ -226,7 +252,8 @@ func _process_night(delta: float) -> void:
 		_spawn_timer -= delta
 		if _spawn_timer <= 0.0:
 			var pod_size: int = mini(randi_range(POD_SIZE_MIN, POD_SIZE_MAX), _night_total - _night_spawned)
-			_drop_pod(pod_size)
+			_drop_pod(pod_size, _next_spawn_side)
+			_next_spawn_side = -_next_spawn_side  # alternate flanks
 			_night_spawned += pod_size
 			_spawn_timer = _pod_interval()
 	else:
@@ -260,19 +287,28 @@ func _process_dawn(delta: float) -> void:
 # ── PORTAL ────────────────────────────────────────────────────────────────────
 
 func _on_portal_broken(_faction: String) -> void:
-	GameState.portal_active = false
-	# the launch site empties its last pods
+	_portals_broken += 1
+	if _portals_broken >= 2:
+		GameState.portal_active = false
+	# the falling launch site empties its last pods — on both flanks
 	var count: int = maxi(COUNTERATTACK_MIN, mini(4 + (GameState.day_number - 1) * 2, MAX_WAVE_SIZE))
+	var side: float = 1.0
 	while count > 0:
 		var pod_size: int = mini(randi_range(POD_SIZE_MIN, POD_SIZE_MAX), count)
-		_drop_pod(pod_size)
+		_drop_pod(pod_size, side)
+		side = -side
 		count -= pod_size
 	_transition_sky(COLOR_SKY_BLOOD, 1.5)
 
 # ── DROP PODS ─────────────────────────────────────────────────────────────────
 
-func _drop_pod(count: int) -> void:
-	var pod_x: float = _pick_pod_x()
+func _configure_side(enemy: CharacterBody2D, side: float) -> void:
+	# side +1 = right flank, marches left toward center camp
+	enemy.set("march_dir", -side)
+	enemy.set("exit_x", EXIT_RIGHT if side > 0.0 else EXIT_LEFT)
+
+func _drop_pod(count: int, side: float) -> void:
+	var pod_x: float = _pick_pod_x(side)
 	# the pod itself: a slab that falls, slams, and burns out
 	var pod: ColorRect = ColorRect.new()
 	pod.size = Vector2(16, 22)
@@ -289,15 +325,22 @@ func _drop_pod(count: int) -> void:
 	tween.tween_property(pod, "modulate:a", 0.0, 4.0)
 	tween.tween_callback(pod.queue_free)  # no ghost pods littering the field
 
-func _pick_pod_x() -> float:
-	# pods aim inside the field but respect the outermost wall — the siege
+func _pick_pod_x(side: float) -> float:
+	# pods aim inside that flank but respect its outermost wall — the siege
 	# lands in your yard, not inside your living room
-	var outer_wall_x: float = POD_MIN_X
+	if side > 0.0:
+		var outer_r: float = POD_MIN_X
+		for wall: Node in get_tree().get_nodes_in_group("walls"):
+			var wn: Node2D = wall as Node2D
+			if wn and is_instance_valid(wn) and wn.global_position.x > 0.0:
+				outer_r = maxf(outer_r, wn.global_position.x + 30.0)
+		return randf_range(minf(outer_r, POD_MAX_X - 20.0), POD_MAX_X)
+	var outer_l: float = -POD_MIN_X
 	for wall: Node in get_tree().get_nodes_in_group("walls"):
 		var wn: Node2D = wall as Node2D
-		if wn and is_instance_valid(wn):
-			outer_wall_x = maxf(outer_wall_x, wn.global_position.x + 30.0)
-	return randf_range(maxf(POD_MIN_X, outer_wall_x), POD_MAX_X)
+		if wn and is_instance_valid(wn) and wn.global_position.x < 0.0:
+			outer_l = minf(outer_l, wn.global_position.x - 30.0)
+	return randf_range(-POD_MAX_X, maxf(outer_l, -POD_MAX_X + 20.0))
 
 func _disgorge_pod(pod_x: float, count: int) -> void:
 	var day: int = GameState.day_number
@@ -309,46 +352,59 @@ func _disgorge_pod(pod_x: float, count: int) -> void:
 		elif day >= 2 and roll < 0.55:
 			scene = PSION_SCENE
 		var enemy: CharacterBody2D = scene.instantiate() as CharacterBody2D
+		_configure_side(enemy, 1.0 if pod_x > 0.0 else -1.0)
 		enemy.global_position = Vector2(pod_x + float(i) * 12.0 - 6.0, 136.0)
 		add_child(enemy)
 
 # ── WORLD SETUP ───────────────────────────────────────────────────────────────
 
 
-# The land ends in liquid, not a cliff (#25)
+# The land ends in liquid at BOTH ends now (#25, #30)
 func _spawn_shoreline() -> void:
-	var water_n720 := ColorRect.new()
-	water_n720.color = Color(0.30, 0.17, 0.11, 1.0)
-	water_n720.position = Vector2(-720.0, 152.0)
-	water_n720.size = Vector2(335.0, 260.0)
-	add_child(water_n720)
-	var surf_n720 := ColorRect.new()
-	surf_n720.color = Color(0.50, 0.31, 0.19, 0.9)
-	surf_n720.position = Vector2(-720.0, 152.0)
-	surf_n720.size = Vector2(335.0, 2.0)
-	add_child(surf_n720)
-	var tw_n720: Tween = surf_n720.create_tween().set_loops()
-	tw_n720.tween_property(surf_n720, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
-	tw_n720.tween_property(surf_n720, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
+	for x0: float in [-1420.0, 1255.0]:
+		var water := ColorRect.new()
+		water.color = Color(0.30, 0.17, 0.11, 1.0)
+		water.position = Vector2(x0, 152.0)
+		water.size = Vector2(165.0, 260.0)
+		add_child(water)
+		var surf := ColorRect.new()
+		surf.color = Color(0.50, 0.31, 0.19, 0.9)
+		surf.position = Vector2(x0, 152.0)
+		surf.size = Vector2(165.0, 2.0)
+		add_child(surf)
+		var tw: Tween = surf.create_tween().set_loops()
+		tw.tween_property(surf, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_property(surf, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
 
 func _spawn_world_objects() -> void:
 	var ship: Node2D = SHIP_SCENE.instantiate() as Node2D
-	ship.position = Vector2(-280.0, 142.0)
+	ship.position = Vector2(-90.0, 142.0)
 	add_child(ship)
 
-	# the drop-pod launch site — Mars's portal
-	var portal: Node2D = PORTAL_SCENE.instantiate() as Node2D
-	portal.position = Vector2(740.0, 148.0)
-	portal.set("faction", "cabal")
-	add_child(portal)
+	# TWO drop-pod launch sites — Mars's portals, one per flank
+	var site_r: Node2D = PORTAL_SCENE.instantiate() as Node2D
+	site_r.position = Vector2(880.0, 148.0)
+	site_r.set("faction", "cabal")
+	add_child(site_r)
 
-	# the Incendiary Colossus guards the launch site (patrols 640-760)
-	var colossus: CharacterBody2D = COLOSSUS_SCENE.instantiate() as CharacterBody2D
-	colossus.position = Vector2(700.0, 132.0)
-	add_child(colossus)
+	var site_l: Node2D = PORTAL_SCENE.instantiate() as Node2D
+	site_l.position = Vector2(-880.0, 148.0)
+	site_l.set("faction", "cabal")
+	add_child(site_l)
+
+	# an Incendiary Colossus guards each launch site
+	var col_r: CharacterBody2D = COLOSSUS_SCENE.instantiate() as CharacterBody2D
+	col_r.set("bound_portal_x", 880.0)
+	col_r.position = Vector2(830.0, 132.0)
+	add_child(col_r)
+
+	var col_l: CharacterBody2D = COLOSSUS_SCENE.instantiate() as CharacterBody2D
+	col_l.set("bound_portal_x", -880.0)
+	col_l.position = Vector2(-830.0, 132.0)
+	add_child(col_l)
 
 	var flag: Node2D = FLAG_SCENE.instantiate() as Node2D
-	flag.position = Vector2(600.0, 148.0)
+	flag.position = Vector2(680.0, 148.0)
 	add_child(flag)
 
 	# Seguira waits in the dunes — Osiris's Ghost (Solar / Well of Radiance)
@@ -362,15 +418,15 @@ func _spawn_world_objects() -> void:
 	shrine.position = Vector2(455.0, 148.0)
 	add_child(shrine)
 
-	# world-secret shards
-	for x: float in [-330.0, 690.0]:
+	# world-secret shards buried at both ends of the war zone
+	for x: float in [-1050.0, 1050.0]:
 		var shard: Area2D = PICKUP_SCENE.instantiate() as Area2D
 		shard.set("kind", "shard")
 		shard.position = Vector2(x, 143.0)
 		add_child(shard)
 
 func _spawn_initial_caches() -> void:
-	var positions: Array[float] = [-125.0, -70.0, -15.0, 45.0, 110.0, 175.0, 245.0, 320.0]
+	var positions: Array[float] = [-320.0, -245.0, -175.0, -110.0, -45.0, 45.0, 110.0, 175.0, 245.0, 320.0]
 	for x: float in positions:
 		_spawn_cache_at(x)
 
@@ -445,6 +501,7 @@ func save_planet_state() -> void:
 		"walls": walls,
 		"towers": towers,
 		"workers": workers,
+		"portals_broken": _portals_broken,
 	}
 
 func _restore_planet_state() -> void:
@@ -452,6 +509,7 @@ func _restore_planet_state() -> void:
 		return
 	var st: Dictionary = GameState.planet_states[PLANET_NAME]
 	GameState.planet_states.erase(PLANET_NAME)
+	_portals_broken = int(st.get("portals_broken", 0))
 	_simulate_away_nights(st)
 	for w: Dictionary in st["walls"]:
 		for site: Node in get_tree().get_nodes_in_group("build_sites"):
@@ -516,6 +574,7 @@ func _transition_sky(target: Color, duration: float) -> void:
 func debug_spawn_dreg() -> void:
 	var player: Node = get_tree().get_first_node_in_group("player")
 	var leg: CharacterBody2D = LEGIONARY_SCENE.instantiate() as CharacterBody2D
+	_configure_side(leg, 1.0)
 	leg.global_position = player.global_position + Vector2(50.0, 0.0) if player else Vector2(100.0, 135.0)
 	add_child(leg)
 

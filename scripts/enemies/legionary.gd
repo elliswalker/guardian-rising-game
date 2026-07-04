@@ -9,7 +9,10 @@ const FRAME_DETECT_RANGE  := 50.0
 const FRAME_ATTACK_RANGE  := 20.0
 const WALL_ATTACK_COOLDOWN := 2.8
 const RETREAT_SPEED       := 18.0
-const RETREAT_EXIT_X      := 850.0
+
+# Dual-front planets set these before add_child (same contract as dreg/vandal)
+var march_dir: float = -1.0
+var exit_x: float = 850.0
 const HP_MAX              := 3
 
 const COLOR_DEFAULT := Color.WHITE
@@ -41,9 +44,9 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 	if _retreating:
-		velocity.x = RETREAT_SPEED
+		velocity.x = signf(exit_x - global_position.x) * RETREAT_SPEED
 		move_and_slide()
-		if global_position.x > RETREAT_EXIT_X:
+		if absf(global_position.x - exit_x) < 12.0:
 			queue_free()
 		return
 	_frame_target = _find_nearest_frame()
@@ -52,7 +55,7 @@ func _physics_process(delta: float) -> void:
 		var dir: float = sign(_frame_target.global_position.x - global_position.x)
 		velocity.x = 0.0 if dist <= FRAME_ATTACK_RANGE else dir * MOVE_SPEED
 	else:
-		velocity.x = -MOVE_SPEED
+		velocity.x = march_dir * MOVE_SPEED
 	move_and_slide()
 	_wall_attack_timer -= delta
 	if _wall_attack_timer <= 0.0:

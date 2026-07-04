@@ -3,7 +3,7 @@ extends Node2D
 # The Moon — planet 3. Hive territory: it is ALWAYS night here.
 # The loop keeps its shape, but the "day" is a dark lull under a distant
 # Earth, the dusk is Omnigul's warning shriek, and the surges are thrall
-# floods. Kill the Wizard at the tomb to collapse the soul lantern.
+# floods — from BOTH sides (#30): two tombs, two Wizards, two soul lanterns.
 # The Ascendant Forge here unlocks Shield-tier (metal) walls.
 
 const THRALL_SCENE    := preload("res://scenes/enemies/thrall.tscn")
@@ -21,7 +21,10 @@ const PICKUP_SCENE    := preload("res://scenes/world/pickup.tscn")
 const PLANET_NAME := "moon"
 
 const MAX_DORMANT_FRAMES := 6
-const FRAME_SPAWN_XS: Array[float] = [195.0, 260.0, 330.0, 410.0, 480.0, 550.0]
+const FRAME_SPAWN_XS: Array[float] = [-460.0, -310.0, -190.0, 195.0, 320.0, 470.0]
+
+const EXIT_RIGHT := 1150.0
+const EXIT_LEFT  := -1150.0
 
 # Always night — even the lull is dark. The Earth hangs where the sun would be.
 const COLOR_SKY_LULL    := Color(0.10, 0.10, 0.20, 1)
@@ -44,6 +47,7 @@ const COUNTERATTACK_MIN    := 8
 enum Phase { LULL, WARNING, SURGE, RESPITE }
 
 var spawn_point_right: Marker2D
+var spawn_point_left: Marker2D
 var _sky_rect: ColorRect
 var _earth_disc: ColorRect
 
@@ -60,11 +64,14 @@ var _quiet_surge_pending: bool = false
 var _quiet_this_surge: bool = false
 var _clear_countdown: float = -1.0
 var _last_lull_seconds: int = -1
+var _next_spawn_side: float = 1.0
+var _portals_broken: int = 0
 var _layout_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	add_to_group("world")
 	spawn_point_right = $SpawnRight
+	spawn_point_left = $SpawnLeft
 	_sky_rect = $ParallaxBackground/SkyLayer/SkyRect
 	_earth_disc = $SkyUI/EarthDisc
 	if GameState.travel_mode:
@@ -72,8 +79,8 @@ func _ready() -> void:
 	else:
 		GameState.new_run()
 	GameState.current_planet = PLANET_NAME
-	GameState.encampment_x = -100.0
-	GameState.dual_front = false
+	GameState.encampment_x = 0.0
+	GameState.dual_front = true
 	GameState.portal_active = not GameState.planets_cleared.get(PLANET_NAME, false)
 	GameState.portal_broken.connect(_on_portal_broken)
 	_layout_rng.seed = hash(PLANET_NAME) + GameState.current_run * 7919
@@ -120,20 +127,41 @@ func _start_lull() -> void:
 func _spawn_lull_wanderers() -> void:
 	if GameState.day_number <= 1:
 		return
-	var min_x: float = 380.0
-	for wall: Node in get_tree().get_nodes_in_group("walls"):
-		var wn: Node2D = wall as Node2D
-		if wn and is_instance_valid(wn):
-			min_x = maxf(min_x, wn.global_position.x + 40.0)
-	if min_x >= 680.0:
-		return  # walls own the field
 	for i in 2:
+		var side: float = 1.0 if i % 2 == 0 else -1.0
 		var thrall: CharacterBody2D = THRALL_SCENE.instantiate() as CharacterBody2D
 		thrall.set("_start_feral", false)
-		thrall.set("wander_left", min_x)
-		thrall.set("wander_right", 760.0)
-		thrall.global_position = Vector2(randf_range(min_x, 700.0), 136.0)
+		_configure_side(thrall, side)
+		if side > 0.0:
+			var min_x: float = _frontier(1.0, 380.0)
+			if min_x >= 680.0:
+				continue  # walls own that field
+			thrall.set("wander_left", min_x)
+			thrall.set("wander_right", 780.0)
+			thrall.global_position = Vector2(randf_range(min_x, 700.0), 136.0)
+		else:
+			var max_x: float = _frontier(-1.0, -380.0)
+			if max_x <= -680.0:
+				continue
+			thrall.set("wander_left", -780.0)
+			thrall.set("wander_right", max_x)
+			thrall.global_position = Vector2(randf_range(-700.0, max_x), 136.0)
 		add_child(thrall)
+
+# Wanderers stay beyond that side's outermost wall
+func _frontier(side: float, base: float) -> float:
+	var frontier: float = base
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if not wn or not is_instance_valid(wn):
+			continue
+		if wn.global_position.x * side <= 0.0:
+			continue
+		if side > 0.0:
+			frontier = maxf(frontier, wn.global_position.x + 40.0)
+		else:
+			frontier = minf(frontier, wn.global_position.x - 40.0)
+	return frontier
 
 func _process_lull(delta: float) -> void:
 	_lull_timer -= delta
@@ -208,7 +236,8 @@ func _process_surge(delta: float) -> void:
 	if _surge_spawned < _surge_total:
 		_spawn_timer -= delta
 		if _spawn_timer <= 0.0:
-			_spawn_thrall()
+			_spawn_thrall_on_side(_next_spawn_side)
+			_next_spawn_side = -_next_spawn_side  # alternate fronts
 			_surge_spawned += 1
 			_spawn_timer = _surge_interval()
 	else:
@@ -243,50 +272,64 @@ func _process_respite(delta: float) -> void:
 # ── PORTAL / BOSS ─────────────────────────────────────────────────────────────
 
 func _on_portal_broken(_faction: String) -> void:
-	GameState.portal_active = false
-	# the lantern's collapse spills one last flood
+	_portals_broken += 1
+	if _portals_broken >= 2:
+		GameState.portal_active = false
+	# the lantern's collapse spills one last flood — on both fronts
 	var count: int = maxi(COUNTERATTACK_MIN, mini(5 + (GameState.day_number - 1) * 2, MAX_WAVE_SIZE))
 	for i in count:
-		_spawn_thrall()
+		_spawn_thrall_on_side(1.0 if i % 2 == 0 else -1.0)
 	_transition_sky(COLOR_SKY_BLOOD, 1.5)
 
 # ── WORLD SETUP ───────────────────────────────────────────────────────────────
 
 
-# The land ends in liquid, not a cliff (#25)
+# The land ends in liquid at BOTH ends now (#25, #30)
 func _spawn_shoreline() -> void:
-	var water_n720 := ColorRect.new()
-	water_n720.color = Color(0.04, 0.04, 0.10, 1.0)
-	water_n720.position = Vector2(-720.0, 152.0)
-	water_n720.size = Vector2(335.0, 260.0)
-	add_child(water_n720)
-	var surf_n720 := ColorRect.new()
-	surf_n720.color = Color(0.14, 0.14, 0.26, 0.9)
-	surf_n720.position = Vector2(-720.0, 152.0)
-	surf_n720.size = Vector2(335.0, 2.0)
-	add_child(surf_n720)
-	var tw_n720: Tween = surf_n720.create_tween().set_loops()
-	tw_n720.tween_property(surf_n720, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
-	tw_n720.tween_property(surf_n720, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
+	for x0: float in [-1420.0, 1255.0]:
+		var water := ColorRect.new()
+		water.color = Color(0.04, 0.04, 0.10, 1.0)
+		water.position = Vector2(x0, 152.0)
+		water.size = Vector2(165.0, 260.0)
+		add_child(water)
+		var surf := ColorRect.new()
+		surf.color = Color(0.14, 0.14, 0.26, 0.9)
+		surf.position = Vector2(x0, 152.0)
+		surf.size = Vector2(165.0, 2.0)
+		add_child(surf)
+		var tw: Tween = surf.create_tween().set_loops()
+		tw.tween_property(surf, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_property(surf, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
 
 func _spawn_world_objects() -> void:
 	var ship: Node2D = SHIP_SCENE.instantiate() as Node2D
-	ship.position = Vector2(-280.0, 142.0)
+	ship.position = Vector2(-90.0, 142.0)
 	add_child(ship)
 
-	# the Hive tomb — its soul lantern feeds the surges
-	var portal: Node2D = PORTAL_SCENE.instantiate() as Node2D
-	portal.position = Vector2(740.0, 148.0)
-	portal.set("faction", "hive")
-	add_child(portal)
+	# TWO Hive tombs, one per front — each soul lantern feeds its own flood
+	var tomb_r: Node2D = PORTAL_SCENE.instantiate() as Node2D
+	tomb_r.position = Vector2(880.0, 148.0)
+	tomb_r.set("faction", "hive")
+	add_child(tomb_r)
 
-	# the Wizard tends the lantern; kill it to collapse the tomb
-	var wizard: CharacterBody2D = WIZARD_SCENE.instantiate() as CharacterBody2D
-	wizard.position = Vector2(695.0, 118.0)
-	add_child(wizard)
+	var tomb_l: Node2D = PORTAL_SCENE.instantiate() as Node2D
+	tomb_l.position = Vector2(-880.0, 148.0)
+	tomb_l.set("faction", "hive")
+	add_child(tomb_l)
+
+	# a Wizard tends each lantern; kill one to collapse that tomb
+	var wiz_r: CharacterBody2D = WIZARD_SCENE.instantiate() as CharacterBody2D
+	wiz_r.set("bound_portal_x", 880.0)
+	wiz_r.position = Vector2(830.0, 118.0)
+	add_child(wiz_r)
+
+	var wiz_l: CharacterBody2D = WIZARD_SCENE.instantiate() as CharacterBody2D
+	wiz_l.set("bound_portal_x", -880.0)
+	wiz_l.position = Vector2(-830.0, 118.0)
+	add_child(wiz_l)
 
 	var flag: Node2D = FLAG_SCENE.instantiate() as Node2D
-	flag.position = Vector2(620.0, 148.0)
+	flag.position = Vector2(680.0, 148.0)
 	add_child(flag)
 
 	# Ascendant Forge — metal unlock, gates Shield-tier walls (EP-06 tier 4)
@@ -310,8 +353,8 @@ func _spawn_world_objects() -> void:
 		shrine.position = Vector2(430.0, 148.0)
 		add_child(shrine)
 
-	# world-secret shards near the wreck and deep in the dark
-	for x: float in [-330.0, 660.0]:
+	# world-secret shards deep in the dark at both ends
+	for x: float in [-1050.0, 1050.0]:
 		var shard: Area2D = PICKUP_SCENE.instantiate() as Area2D
 		shard.set("kind", "shard")
 		shard.position = Vector2(x, 143.0)
@@ -319,14 +362,21 @@ func _spawn_world_objects() -> void:
 
 # ── SPAWNING ──────────────────────────────────────────────────────────────────
 
-func _spawn_thrall() -> void:
+func _configure_side(enemy: CharacterBody2D, side: float) -> void:
+	# side +1 = spawns right, marches left toward center camp
+	enemy.set("march_dir", -side)
+	enemy.set("exit_x", EXIT_RIGHT if side > 0.0 else EXIT_LEFT)
+
+func _spawn_thrall_on_side(side: float) -> void:
 	var thrall: CharacterBody2D = THRALL_SCENE.instantiate() as CharacterBody2D
-	thrall.global_position = spawn_point_right.global_position + Vector2(randf_range(0.0, 24.0), 0.0)
+	_configure_side(thrall, side)
+	var marker: Marker2D = spawn_point_right if side > 0.0 else spawn_point_left
+	thrall.global_position = marker.global_position + Vector2(randf_range(-12.0, 12.0), 0.0)
 	add_child(thrall)
 
 func _spawn_initial_caches() -> void:
 	# no fauna, no trees — the Moon economy leans on caches and sweeping
-	var positions: Array[float] = [-125.0, -70.0, -15.0, 45.0, 110.0, 180.0, 250.0, 330.0, 410.0]
+	var positions: Array[float] = [-330.0, -250.0, -180.0, -110.0, -45.0, 45.0, 110.0, 180.0, 250.0, 330.0]
 	for x: float in positions:
 		_spawn_cache_at(x)
 
@@ -401,6 +451,7 @@ func save_planet_state() -> void:
 		"walls": walls,
 		"towers": towers,
 		"workers": workers,
+		"portals_broken": _portals_broken,
 	}
 
 func _restore_planet_state() -> void:
@@ -408,6 +459,7 @@ func _restore_planet_state() -> void:
 		return
 	var st: Dictionary = GameState.planet_states[PLANET_NAME]
 	GameState.planet_states.erase(PLANET_NAME)
+	_portals_broken = int(st.get("portals_broken", 0))
 	_simulate_away_nights(st)
 	for w: Dictionary in st["walls"]:
 		for site: Node in get_tree().get_nodes_in_group("build_sites"):
@@ -472,6 +524,7 @@ func _transition_sky(target: Color, duration: float) -> void:
 func debug_spawn_dreg() -> void:
 	var player: Node = get_tree().get_first_node_in_group("player")
 	var thrall: CharacterBody2D = THRALL_SCENE.instantiate() as CharacterBody2D
+	_configure_side(thrall, 1.0)
 	thrall.global_position = player.global_position + Vector2(50.0, 0.0) if player else Vector2(100.0, 135.0)
 	add_child(thrall)
 

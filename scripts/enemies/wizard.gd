@@ -11,8 +11,8 @@ const BLIGHT_SLOW  := 0.45  # multiplier applied to speed while in blight
 const BLIGHT_PULSE := 2.5   # seconds between blight pulses
 const HOVER_SPEED  := 0.9
 const HOVER_AMPLITUDE := 9.0
-const PATROL_LEFT_X := 640.0
-const PATROL_RIGHT_X := 750.0
+# Patrol anchors to the spawn point — a tomb-keeper never leaves its lantern
+const PATROL_HALF_SPAN := 55.0
 
 const COLOR_HEALTHY := Color.WHITE
 const COLOR_DAMAGED := Color(1.0, 0.5, 0.5, 1.0)
@@ -25,6 +25,10 @@ var _is_dying: bool = false
 var _blight_timer: float = 0.0
 var _hover_time: float = 0.0
 var _patrol_dir: float = -1.0
+var _home_x: float = 0.0
+
+# Dual-portal planets: set before add_child to bind this wizard to one tomb
+var bound_portal_x: float = INF
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -32,6 +36,7 @@ func _ready() -> void:
 	collision_layer = 32
 	collision_mask = 0
 	motion_mode = MOTION_MODE_FLOATING
+	_home_x = global_position.x
 
 func _physics_process(delta: float) -> void:
 	if _is_dying:
@@ -39,9 +44,9 @@ func _physics_process(delta: float) -> void:
 	_hover_time += delta
 	velocity.x = _patrol_dir * MOVE_SPEED
 	velocity.y = sin(_hover_time * HOVER_SPEED) * HOVER_AMPLITUDE * 2.0
-	if global_position.x <= PATROL_LEFT_X:
+	if global_position.x <= _home_x - PATROL_HALF_SPAN:
 		_patrol_dir = 1.0
-	elif global_position.x >= PATROL_RIGHT_X:
+	elif global_position.x >= _home_x + PATROL_HALF_SPAN:
 		_patrol_dir = -1.0
 	move_and_slide()
 	_blight_timer -= delta
@@ -67,8 +72,13 @@ func _die() -> void:
 	_is_dying = true
 	set_physics_process(false)
 	for portal: Node in get_tree().get_nodes_in_group("portals"):
-		if portal.has_method("break_portal"):
-			portal.call("break_portal")
+		if not portal.has_method("break_portal"):
+			continue
+		# Bound wizards (dual-tomb Moon) only collapse their own lantern
+		var pn: Node2D = portal as Node2D
+		if bound_portal_x != INF and pn and absf(pn.global_position.x - bound_portal_x) > 120.0:
+			continue
+		portal.call("break_portal")
 	# the soul lantern collapses
 	var boom: Node2D = preload("res://scenes/world/ability_shockwave.tscn").instantiate() as Node2D
 	boom.global_position = global_position

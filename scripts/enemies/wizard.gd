@@ -4,7 +4,7 @@ extends CharacterBody2D
 # Killing the Wizard collapses the soul lantern, ending Hive spawning.
 # TODO: blight slow applied to player/frames; lantern explosion visual on death.
 
-const HP_MAX       := 16
+const HP_MAX       := 40
 const MOVE_SPEED   := 7.0
 const BLIGHT_RANGE := 70.0
 const BLIGHT_SLOW  := 0.45  # multiplier applied to speed while in blight

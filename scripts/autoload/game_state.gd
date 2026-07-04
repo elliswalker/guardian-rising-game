@@ -52,8 +52,15 @@ var glimmer: int = 0:
 
 # Vaulted glimmer is safe from combat scatter but isn't armor (EP-10)
 var vaulted_glimmer: int = 0
-# Center-tier ladder: 1=builders, 2=+redjacks, 3=+sweepers/towers, 4=+vault (EP-09)
-var encampment_tier: int = 1
+# Center-tier ladder: 1=builders, 2=+redjacks, 3=+sweepers/towers, 4=+vault.
+# PER PLANET (#34): every world starts at T1 — build the camp from scratch.
+var encampment_tiers: Dictionary = {}
+
+func camp_tier() -> int:
+	return int(encampment_tiers.get(current_planet, 1))
+
+func set_camp_tier(tier: int) -> void:
+	encampment_tiers[current_planet] = tier
 
 # ── Ghosts & supers (EP-08) ──────────────────────────────────────────────────
 var legendary_shards: int = 0
@@ -74,7 +81,8 @@ func spend_shards(amount: int) -> bool:
 
 # ── Planets (EP-06/07/14) ────────────────────────────────────────────────────
 var current_planet: String = "earth"
-var ship_repaired: bool = false
+# Rebuilding the ship on a planet turns that spot into its landing pad (#31)
+var ships_built: Dictionary = {}
 var stone_unlocked: bool = false   # Cosmodrome foundry — gates wall/tower tier 3
 var metal_unlocked: bool = false   # future planet — gates tier 4
 var planets_cleared: Dictionary = {}  # planet -> true once its portals fall
@@ -129,9 +137,9 @@ func save_game() -> void:
 		"equipped_super": equipped_super,
 		"unlocked_supers": unlocked_supers,
 		"mote_reduction": mote_reduction,
-		"encampment_tier": encampment_tier,
+		"encampment_tiers": encampment_tiers,
 		"current_planet": current_planet,
-		"ship_repaired": ship_repaired,
+		"ships_built": ships_built,
 		"stone_unlocked": stone_unlocked,
 		"metal_unlocked": metal_unlocked,
 		"planets_cleared": planets_cleared,
@@ -174,9 +182,9 @@ func load_game() -> bool:
 	equipped_super = String(d.get("equipped_super", ""))
 	unlocked_supers.assign(d.get("unlocked_supers", []))
 	mote_reduction = float(d.get("mote_reduction", 0.0))
-	encampment_tier = int(d.get("encampment_tier", 1))
+	encampment_tiers = d.get("encampment_tiers", {})
 	current_planet = String(d.get("current_planet", "earth"))
-	ship_repaired = bool(d.get("ship_repaired", false))
+	ships_built = d.get("ships_built", {})
 	stone_unlocked = bool(d.get("stone_unlocked", false))
 	metal_unlocked = bool(d.get("metal_unlocked", false))
 	planets_cleared = d.get("planets_cleared", {})
@@ -320,14 +328,14 @@ func new_run() -> void:
 	glimmer = 0
 	vaulted_glimmer = 0
 	vault_changed.emit(0)
-	encampment_tier = 1
+	encampment_tiers.clear()
 	legendary_shards = 0
 	equipped_super = ""
 	unlocked_supers.clear()
 	mote_reduction = 0.0
 	shards_changed.emit(0)
 	current_planet = "earth"
-	ship_repaired = false
+	ships_built.clear()
 	stone_unlocked = false
 	metal_unlocked = false
 	planets_cleared.clear()

@@ -35,6 +35,10 @@ func _process(_delta: float) -> void:
 	if _player_nearby and not _activated and GameState.portal_active:
 		var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 		var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
+		if GameState.camp_tier() < 3:
+			# an army needs a war camp behind it (#32)
+			GameState.show_action_prompt(self, "The Charge — Requires Encampment T3", 8, pdist)
+			return
 		GameState.show_action_prompt(self, "[ SPACE ]  Send the Charge", 8, pdist)
 		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 			_activate()

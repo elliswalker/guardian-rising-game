@@ -115,10 +115,10 @@ position = Vector2(525, 148)
 position = Vector2(575, 148)
 
 [node name="Frame0" parent="." instance=ExtResource("7")]
-position = Vector2(165, 148)
+position = Vector2(-38, 148)
 
 [node name="Frame1" parent="." instance=ExtResource("7")]
-position = Vector2(415, 148)
+position = Vector2(-16, 148)
 
 [node name="Frame2" parent="." instance=ExtResource("7")]
 position = Vector2(490, 148)

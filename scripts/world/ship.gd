@@ -27,8 +27,8 @@ var _player_nearby: bool = false
 
 func _ready() -> void:
 	add_to_group("ship")
-	if GameState.ship_repaired:
-		_stage = 3  # repaired once, flightworthy everywhere
+	if GameState.ships_built.get(GameState.current_planet, false):
+		_stage = 3  # this planet's pad is built — you landed clean
 	_update_visual()
 
 func _process(_delta: float) -> void:
@@ -83,6 +83,10 @@ func is_complete() -> bool:
 
 func _advance_stage() -> void:
 	_stage = mini(_stage + 1, 3)
+	if _stage >= 3:
+		# the wreck becomes this planet's landing pad — future visits land clean
+		GameState.ships_built[GameState.current_planet] = true
+		Sound.play("ding")
 	_build_progress = 0
 	_stage_commissioned = false
 	_stage_complete = false
@@ -98,7 +102,6 @@ func _update_visual() -> void:
 
 func _launch() -> void:
 	GameState.hide_action_prompt(self)
-	GameState.ship_repaired = true
 	# Snapshot this planet so the away-simulation can run while we're gone
 	var world: Node = get_tree().get_first_node_in_group("world")
 	if world and world.has_method("save_planet_state"):

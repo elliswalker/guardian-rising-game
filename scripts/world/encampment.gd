@@ -30,7 +30,7 @@ func _ready() -> void:
 	_update_visual()
 
 func _process(_delta: float) -> void:
-	if not _player_inside or GameState.encampment_tier >= MAX_TIER:
+	if not _player_inside or GameState.camp_tier() >= MAX_TIER:
 		return
 	_show_prompt()  # re-assert each frame to recover from preemption
 	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
@@ -48,23 +48,23 @@ func _on_body_exited(body: Node2D) -> void:
 func _show_prompt() -> void:
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
-	var next_tier: int = GameState.encampment_tier + 1
+	var next_tier: int = GameState.camp_tier() + 1
 	GameState.show_action_prompt(self,
 		"[ SPACE ]  Encampment T%d  —  %d ◈   (%s)" %
 		[next_tier, TIER_COSTS[next_tier], TIER_UNLOCKS[next_tier]], 7, pdist)
 
 func _try_upgrade() -> void:
-	var next_tier: int = GameState.encampment_tier + 1
+	var next_tier: int = GameState.camp_tier() + 1
 	if not GameState.spend_glimmer(TIER_COSTS[next_tier]):
 		return
-	GameState.encampment_tier = next_tier
+	GameState.set_camp_tier(next_tier)
 	GameState.encampment_upgraded.emit(next_tier)
 	_update_visual()
 	if next_tier >= MAX_TIER:
 		GameState.hide_action_prompt(self)
 
 func _update_visual() -> void:
-	var tier: int = GameState.encampment_tier
+	var tier: int = GameState.camp_tier()
 	# tower grows and brightens with each tier
 	if _tower_sprite:
 		_tower_sprite.offset_top = -47.0 - float(tier - 1) * 8.0

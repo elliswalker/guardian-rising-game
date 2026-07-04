@@ -1,6 +1,6 @@
 extends CharacterBody2D
 
-const HP_MAX           := 20
+const HP_MAX           := 48
 const MOVE_SPEED       := 5.0
 const TETHER_RANGE     := 95.0
 const TETHER_INTERVAL  := 4.5

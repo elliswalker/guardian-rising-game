@@ -4,7 +4,7 @@ extends CharacterBody2D
 # On death: fuel tank explodes, cabal ship flees.
 # TODO: flamethrower AoE pushback + burn DoT on player/frames; ship departure animation.
 
-const HP_MAX           := 24
+const HP_MAX           := 56
 const MOVE_SPEED       := 6.0
 const FLAME_RANGE      := 55.0
 const FLAME_INTERVAL   := 3.5

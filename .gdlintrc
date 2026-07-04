@@ -5,3 +5,6 @@ max-line-length: 120
 # guardian.gd is a cohesive frame-NPC state machine at ~1060 lines;
 # splitting it is a deliberate refactor, not a lint chore
 max-file-lines: 1400
+# game_state.gd is the deliberate global API hub (economy, prompts,
+# planets, save/load) — method count reflects its role
+max-public-methods: 40

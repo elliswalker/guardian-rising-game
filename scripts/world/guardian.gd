@@ -99,8 +99,10 @@ var _tower: Node2D = null
 var _guard_scan_timer: float = 0.0
 var _trickle_timer: float = 0.0
 var _has_kit: bool = true
-# Which front this redjack defends: +1 right, -1 left (dual-front planets)
-var _side: float = 1.0
+# Which front this redjack defends: +1 right, -1 left (0 = not yet assigned).
+# Sides are STICKY — rebalancing every reposition made defenders march
+# across the map for no visible reason.
+var _side: float = 0.0
 
 func _ready() -> void:
 	add_to_group("frame_npc")
@@ -322,6 +324,7 @@ func knocked_dormant() -> void:
 			GameState.queue_build_job(_build_site_target, true)  # priority re-queue
 	_is_builder = false
 	_is_upgrading = false
+	_side = 0.0  # a reactivated frame gets a fresh front assignment
 	_target_enemy = null
 	_build_site_target = null
 	_repair_target = null
@@ -581,6 +584,7 @@ func _on_redjack_job_created() -> void:
 	GameState.redjack_jobs_available -= 1
 	remove_from_group("frame_waiting")
 	add_to_group("redjacks")
+	_pick_side()  # front assigned at hiring, held from then on
 	state = State.PATROL
 	_sprite.modulate = COLOR_REDJACK
 	GameState.wave_changed.connect(_on_wave_changed)
@@ -646,8 +650,12 @@ func _on_build_job_queued() -> void:
 
 # ── Patrol ────────────────────────────────────────────────────────────────────
 
+# Patrol stays on YOUR side of camp on dual-front planets — wandering the
+# full span pulled defenders far from their front by dusk.
 func _patrol_right_bound() -> float:
 	var enc: float = GameState.encampment_x
+	if GameState.dual_front and _side < 0.0:
+		return enc - 25.0  # left-front redjack stays left of camp
 	var bound: float = enc + 250.0
 	for wall: Node in get_tree().get_nodes_in_group("walls"):
 		var wn: Node2D = wall as Node2D
@@ -659,6 +667,8 @@ func _patrol_left_bound() -> float:
 	var enc: float = GameState.encampment_x
 	if not GameState.dual_front:
 		return enc + 25.0
+	if _side > 0.0:
+		return enc + 25.0  # right-front redjack stays right of camp
 	var bound: float = enc - 250.0
 	for wall: Node in get_tree().get_nodes_in_group("walls"):
 		var wn: Node2D = wall as Node2D
@@ -796,6 +806,11 @@ func _do_builder_idle(delta: float) -> void:
 	velocity.x = _patrol_dir * PATROL_SPEED
 
 func _check_for_repair_targets() -> void:
+	# Priority 0: PAID build jobs — a job queued while this builder was busy
+	# was never re-checked on going idle, leaving sites unbuilt indefinitely
+	_try_claim_build_job()
+	if state != State.BUILDER_IDLE:
+		return  # claimed one
 	# Priority 1: free repair — seek nearest broken wall (no range limit; builder walks to it)
 	var nearest_broken: Node2D = null
 	var nearest_broken_dist: float = INF
@@ -952,25 +967,39 @@ func _get_defend_target_x() -> float:
 		target = sorted[1]
 	return target.global_position.x - 10.0 * _side
 
-# On dual-front planets, join whichever front has fewer committed redjacks
+# On dual-front planets, join whichever front has fewer committed redjacks.
+# STICKY: once assigned, hold your front unless it has no walls left while
+# the other side still does.
 func _pick_side() -> void:
 	if not GameState.dual_front:
 		_side = 1.0
 		return
+	if _side != 0.0:
+		var enc: float = GameState.encampment_x
+		var mine: int = 0
+		var theirs: int = 0
+		for wall: Node in get_tree().get_nodes_in_group("walls"):
+			var wn: Node2D = wall as Node2D
+			if not wn or not is_instance_valid(wn):
+				continue
+			if (wn.global_position.x - enc) * _side > 0.0:
+				mine += 1
+			else:
+				theirs += 1
+		if mine > 0 or theirs == 0:
+			return  # my front still stands (or nowhere better) — hold it
 	var right: int = 0
 	var left: int = 0
 	for r: Node in get_tree().get_nodes_in_group("redjacks"):
 		if r == self:
 			continue
-		var st: Variant = r.get("state")
 		var s: Variant = r.get("_side")
-		if st == null or s == null:
+		if s == null or float(s) == 0.0:
 			continue
-		if int(st) == State.REPOSITIONING or int(st) == State.DEFENDING:
-			if float(s) > 0.0:
-				right += 1
-			else:
-				left += 1
+		if float(s) > 0.0:
+			right += 1
+		else:
+			left += 1
 	_side = 1.0 if right <= left else -1.0
 
 func _start_repositioning() -> void:

@@ -487,22 +487,26 @@ func _try_spawn_frame() -> void:
 	for i in to_spawn:
 		var spawn_x: float = _free_camp_x()
 		if is_nan(spawn_x):
-			return  # every camp is occupied
+			return  # every camp is at capacity
 		var frame: CharacterBody2D = FRAME_SCENE.instantiate() as CharacterBody2D
-		frame.global_position = Vector2(spawn_x, 136.0)
+		frame.global_position = Vector2(spawn_x + float(_camp_occupancy(spawn_x)) * 14.0, 136.0)
 		add_child(frame)
 
-# Lockers are landmarks (Kingdom vagrant camps): respawns take the first
-# FREE authored camp position instead of a random spot.
+# Lockers are landmarks (Kingdom vagrant camps): each camp holds up to 2
+# frames and only refills when below capacity.
+const CAMP_CAPACITY := 2
+
+func _camp_occupancy(spawn_x: float) -> int:
+	var count: int = 0
+	for f: Node in get_tree().get_nodes_in_group("frame_npc"):
+		var fn: Node2D = f as Node2D
+		if fn and is_instance_valid(fn) and absf(fn.global_position.x - spawn_x) < 26.0:
+			count += 1
+	return count
+
 func _free_camp_x() -> float:
 	for spawn_x: float in FRAME_SPAWN_XS:
-		var taken: bool = false
-		for f: Node in get_tree().get_nodes_in_group("frame_npc"):
-			var fn: Node2D = f as Node2D
-			if fn and is_instance_valid(fn) and absf(fn.global_position.x - spawn_x) < 22.0:
-				taken = true
-				break
-		if not taken:
+		if _camp_occupancy(spawn_x) < CAMP_CAPACITY:
 			return spawn_x
 	return NAN
 

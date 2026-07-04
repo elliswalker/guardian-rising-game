@@ -100,6 +100,7 @@ var _prompt_owner: Object = null
 var _prompt_priority: int = 0
 var _prompt_text: String = ""
 var _prompt_dist: float = 999999.0
+var _prompt_stamp: int = 0  # frame of the owner's last re-assert (keep-alive)
 
 func _ready() -> void:
 	# Autosave at every dawn — the Kingdom rhythm: each survived night is kept
@@ -269,10 +270,14 @@ func claim_next_build_job() -> Node:
 
 # The NEAREST interactable to the player wins the prompt; priority only
 # breaks near-ties (objects genuinely stacked, e.g. a tree over a build site).
-# Callers should re-assert every frame with their current distance.
+# Callers must re-assert every frame — ownership is a KEEP-ALIVE: an owner
+# that stops asserting (freed, disabled, drifted out of range) loses the
+# prompt within a few frames instead of blocking everyone with stale state.
 func show_action_prompt(owner: Object, text: String, priority: int = 5, dist: float = 999999.0) -> void:
+	var frame: int = Engine.get_process_frames()
 	var owner_valid: bool = _prompt_owner != null and is_instance_valid(_prompt_owner)
-	if owner_valid and owner != _prompt_owner:
+	var owner_live: bool = owner_valid and frame - _prompt_stamp <= 3
+	if owner_live and owner != _prompt_owner:
 		if dist > _prompt_dist + 6.0:
 			return  # someone closer holds the prompt
 		if dist > _prompt_dist - 6.0 and priority < _prompt_priority:
@@ -283,6 +288,17 @@ func show_action_prompt(owner: Object, text: String, priority: int = 5, dist: fl
 		action_prompt_show.emit(text)
 	_prompt_priority = priority
 	_prompt_dist = dist
+	_prompt_stamp = frame
+
+func _process(_delta: float) -> void:
+	# nobody re-asserting at all — clear the lingering prompt entirely
+	if _prompt_owner != null \
+			and Engine.get_process_frames() - _prompt_stamp > 10:
+		_prompt_owner = null
+		_prompt_priority = 0
+		_prompt_text = ""
+		_prompt_dist = 999999.0
+		action_prompt_hide.emit()
 
 func hide_action_prompt(owner: Object) -> void:
 	if _prompt_owner == owner:

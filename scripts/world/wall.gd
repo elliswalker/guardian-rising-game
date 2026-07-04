@@ -130,6 +130,7 @@ func upgrade() -> void:
 	_update_visual()
 
 func _collapse() -> void:
+	_drop_prompt()  # don't die holding the prompt mic
 	var build_site_scene: PackedScene = load("res://scenes/world/build_site.tscn")
 	var site: Node2D = build_site_scene.instantiate() as Node2D
 	site.global_position = global_position

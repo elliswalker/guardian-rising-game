@@ -103,6 +103,9 @@ var _has_kit: bool = true
 # Sides are STICKY — rebalancing every reposition made defenders march
 # across the map for no visible reason.
 var _side: float = 0.0
+# Personal position offset so frames never stack into one block — you can
+# count your workforce at a glance
+var _spread: float = 0.0
 
 func _ready() -> void:
 	add_to_group("frame_npc")
@@ -110,6 +113,7 @@ func _ready() -> void:
 	collision_mask = 1    # ground only
 	_sprite.modulate = COLOR_DORMANT
 	_spawn_pos = global_position
+	_spread = randf_range(-14.0, 14.0)
 	_restore_locker()
 	GameState.redjack_job_created.connect(_on_redjack_job_created)
 	GameState.sweeperbot_job_created.connect(_on_sweeperbot_job_created)
@@ -435,8 +439,8 @@ func _flee_target_x() -> float:
 			if wall_off > 0.0 and wall_off < my_off - 8.0 and wall_off > best_offset:
 				best_offset = wall_off
 				best = wn.global_position.x - 10.0 * _side
-		return best
-	return enc
+		return best + _spread * 0.5
+	return enc + _spread
 
 func _do_flee() -> void:
 	var safe_range: float = ENEMY_DETECT_RANGE if is_in_group("redjacks") else WORKER_FLEE_RANGE
@@ -526,12 +530,13 @@ func _do_seek_job_post() -> void:
 			velocity.x = 0.0
 			_arrive_at_job_post()
 			return
-	var dist: float = abs(global_position.x - _job_post_target.global_position.x)
+	var target_x: float = _job_post_target.global_position.x + _spread
+	var dist: float = abs(global_position.x - target_x)
 	if dist < JOB_POST_ARRIVE_RANGE:
 		velocity.x = 0.0
 		_arrive_at_job_post()
 	else:
-		velocity.x = sign(_job_post_target.global_position.x - global_position.x) * TRAVEL_SPEED
+		velocity.x = sign(target_x - global_position.x) * TRAVEL_SPEED
 
 func _arrive_at_job_post() -> void:
 	if state == State.WAITING:
@@ -768,7 +773,7 @@ func _do_sweep(delta: float) -> void:
 	if _cache_target and is_instance_valid(_cache_target):
 		velocity.x = sign(_cache_target.global_position.x - global_position.x) * SWEEP_SPEED
 	else:
-		var diff: float = GameState.encampment_x - global_position.x
+		var diff: float = GameState.encampment_x + _spread - global_position.x
 		velocity.x = 0.0 if abs(diff) < 15.0 else sign(diff) * SWEEP_SPEED
 		# Idle at the encampment with nothing to collect — sweep the grounds
 		if abs(diff) < 15.0:
@@ -798,8 +803,8 @@ func _do_builder_idle(delta: float) -> void:
 	if _repair_scan_timer <= 0.0:
 		_repair_scan_timer = REPAIR_SCAN_INTERVAL
 		_check_for_repair_targets()
-	var left: float = GameState.encampment_x - (60.0 if GameState.dual_front else 20.0)
-	var right: float = GameState.encampment_x + 60.0
+	var left: float = GameState.encampment_x - (60.0 if GameState.dual_front else 20.0) + _spread
+	var right: float = GameState.encampment_x + 60.0 + _spread
 	if global_position.x >= right:
 		_patrol_dir = -1.0
 	elif global_position.x <= left:
@@ -959,14 +964,31 @@ func _get_defend_target_x() -> float:
 		if wn and is_instance_valid(wn) and (wn.global_position.x - enc) * _side > 0.0:
 			sorted.append(wn)
 	if sorted.is_empty():
-		return enc + 120.0 * _side
+		return enc + (120.0 - float(_defense_slot()) * 8.0) * _side
 	sorted.sort_custom(func(a: Node2D, b: Node2D) -> bool:
 		return (a.global_position.x - enc) * _side > (b.global_position.x - enc) * _side)
 	var target: Node2D = sorted[0]
 	var outer_hp: Variant = target.get("_hp")
 	if outer_hp != null and int(outer_hp) <= 1 and sorted.size() > 1:
 		target = sorted[1]
-	return target.global_position.x - 10.0 * _side
+	# ranked slots: defenders form a visible ROW behind the wall, not a block
+	return target.global_position.x - (10.0 + float(_defense_slot()) * 8.0) * _side
+
+# My rank among same-side committed redjacks (stable instance-id order) —
+# slot 0 stands at the wall, each next man 8px further back
+func _defense_slot() -> int:
+	var ids: Array = [get_instance_id()]
+	for r: Node in get_tree().get_nodes_in_group("redjacks"):
+		if r == self:
+			continue
+		var st: Variant = r.get("state")
+		var s: Variant = r.get("_side")
+		if st == null or s == null or float(s) != _side:
+			continue
+		if int(st) == State.REPOSITIONING or int(st) == State.DEFENDING:
+			ids.append(r.get_instance_id())
+	ids.sort()
+	return mini(ids.find(get_instance_id()), 7)
 
 # On dual-front planets, join whichever front has fewer committed redjacks.
 # STICKY: once assigned, hold your front unless it has no walls left while

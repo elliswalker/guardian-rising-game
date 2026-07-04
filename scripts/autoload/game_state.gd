@@ -23,11 +23,9 @@ signal attack_ordered
 signal portal_broken(faction: String)
 signal victory
 
-# Carried glimmer is also your armor (EP-01), so the cap is a real ceiling:
-# 2000 gives headroom for T4 encampment (600) + forge (500) saving runs
-# while keeping "how much am I carrying" a meaningful risk decision.
-# (PRD's 25k was pre-armor; revisit after balance playtests.)
-const GLIMMER_CAP := 2000
+# D1's cap, per Ellis (OQ-03). With armor live the risk tension comes from
+# the 10% scatter-on-hit, not the ceiling — the cap is just the bag size.
+const GLIMMER_CAP := 25000
 const SAVE_PATH := "user://guardian_rising_save.json"
 
 # Set by each level controller in _ready — Earth camp sits left, Cosmodrome center

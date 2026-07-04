@@ -22,8 +22,23 @@ const THROTTLE: Dictionary = {
 	"clink": 0.08, "scatter": 0.2, "chitter": 1.2, "thunk": 0.15,
 }
 
+# Music layer (#39): Kingdom's rule — the crossfade IS the announcement.
+# A warm pad owns the day, a dark drone owns the night; both are seamless
+# generated loops (tools/gen_music_loops.py).
+const MUSIC: Dictionary = {
+	"day":   preload("res://assets/audio/music_day.wav"),
+	"night": preload("res://assets/audio/music_night.wav"),
+}
+const MUSIC_DB := -14.0      # sits far under the SFX
+const MUSIC_SILENT_DB := -60.0
+const MUSIC_FADE := 5.0      # slow — day into night, not track into track
+
 var _last_played: Dictionary = {}
 var _last_glimmer: int = 0
+var _music_a: AudioStreamPlayer
+var _music_b: AudioStreamPlayer
+var _music_active: AudioStreamPlayer = null
+var _current_track: String = ""
 
 func _ready() -> void:
 	GameState.glimmer_changed.connect(_on_glimmer_changed)
@@ -33,6 +48,52 @@ func _ready() -> void:
 	GameState.encampment_upgraded.connect(func(_t: int) -> void: play("ding"))
 	GameState.shards_changed.connect(_on_shards_changed)
 	GameState.portal_broken.connect(func(_f: String) -> void: play("wave", -2.0, 0.8))
+	_setup_music()
+
+func _setup_music() -> void:
+	# WAV imports don't loop by default — flip it on the shared resources
+	for key: String in MUSIC:
+		var ws: AudioStreamWAV = MUSIC[key] as AudioStreamWAV
+		if ws:
+			ws.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			ws.loop_begin = 0
+			ws.loop_end = ws.data.size() / 2  # 16-bit mono: 2 bytes per frame
+	_music_a = AudioStreamPlayer.new()
+	_music_b = AudioStreamPlayer.new()
+	add_child(_music_a)
+	add_child(_music_b)
+	# The signal contract covers every planet — Moon's lull/surge phases
+	# emit the same day/dusk signals, so it needs no special casing.
+	GameState.day_started.connect(func(_d: int) -> void: play_music("day"))
+	GameState.dawn_triggered.connect(func(_d: int) -> void: play_music("day"))
+	GameState.dusk_triggered.connect(func(_d: int) -> void: play_music("night"))
+	GameState.game_over.connect(func() -> void: stop_music(2.0))
+	GameState.victory.connect(func() -> void: stop_music(6.0))
+
+func play_music(track: String) -> void:
+	if track == _current_track or not MUSIC.has(track):
+		return
+	_current_track = track
+	var incoming: AudioStreamPlayer = _music_b if _music_active == _music_a else _music_a
+	var outgoing: AudioStreamPlayer = _music_active
+	_music_active = incoming
+	incoming.stream = MUSIC[track]
+	incoming.volume_db = MUSIC_SILENT_DB
+	incoming.play()
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(incoming, "volume_db", MUSIC_DB, MUSIC_FADE)
+	if outgoing and outgoing.playing:
+		tween.tween_property(outgoing, "volume_db", MUSIC_SILENT_DB, MUSIC_FADE)
+		tween.chain().tween_callback(outgoing.stop)
+
+func stop_music(fade: float = 2.0) -> void:
+	_current_track = ""
+	for p: AudioStreamPlayer in [_music_a, _music_b]:
+		if p and p.playing:
+			var tween: Tween = create_tween()
+			tween.tween_property(p, "volume_db", MUSIC_SILENT_DB, fade)
+			tween.tween_callback(p.stop)
 
 func play(cue: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	if not STREAMS.has(cue):

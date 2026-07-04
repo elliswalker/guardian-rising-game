@@ -50,8 +50,8 @@ func _on_body_exited(body: Node2D) -> void:
 func _show_prompt() -> void:
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
-	if GameState.camp_tier() < 4:
-		GameState.show_action_prompt(self, "Vault — Requires Encampment T4", 6, pdist)
+	if GameState.camp_tier() < 3:
+		GameState.show_action_prompt(self, "Vault — Requires Encampment T3", 6, pdist)
 		return
 	var stored: int = GameState.vaulted_glimmer
 	if mode == Mode.DEPOSIT:
@@ -73,7 +73,7 @@ func _show_prompt() -> void:
 		GameState.show_action_prompt(self, "Vault empty", 6, pdist)
 
 func _do_action() -> void:
-	if GameState.camp_tier() < 4:
+	if GameState.camp_tier() < 3:
 		return
 	if mode == Mode.DEPOSIT:
 		var amount: int = mini(CHUNK, GameState.glimmer)

@@ -4,16 +4,16 @@ extends Area2D
 # Paid tiers gate what jobs and structures are available. The upgrade is the
 # one workerless build: pay glimmer and it happens.
 #
-# T1 (start): builder jobs
-# T2: +redjack jobs
-# T3: +sweeperbot jobs, towers buildable
-# T4: +vault pads
+# T1 (start): builders AND redjacks — a camp can defend itself from day one
+# T2: +sweeperbot jobs, towers buildable
+# T3: +vault pads
+# T4: the Charge — an army needs a full war camp behind it
 
 const TIER_COSTS: Dictionary = { 2: 200, 3: 400, 4: 600 }
 const TIER_UNLOCKS: Dictionary = {
-	2: "Redjack Jobs",
-	3: "Sweeperbots + Towers",
-	4: "The Vault",
+	2: "Sweeperbots + Towers",
+	3: "The Vault",
+	4: "The Charge",
 }
 const MAX_TIER := 4
 

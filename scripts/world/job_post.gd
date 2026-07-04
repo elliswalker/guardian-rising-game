@@ -11,8 +11,8 @@ const COSTS: Dictionary = {
 }
 # Encampment tier required before this job type unlocks (EP-09)
 const TIER_REQUIRED: Dictionary = {
-	JobType.REDJACK:    2,
-	JobType.SWEEPERBOT: 3,
+	JobType.REDJACK:    1,
+	JobType.SWEEPERBOT: 2,
 	JobType.BUILDER:    1,
 }
 const LABELS: Dictionary = {

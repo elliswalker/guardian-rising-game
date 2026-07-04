@@ -375,9 +375,10 @@ func _should_flee() -> bool:
 		State.SWEEPING, State.SEEKING_SITE, State.BUILDING, State.BUILDER_IDLE, \
 		State.REPAIRING, State.WAITING, State.SEEKING_JOB_POST:
 			return _find_nearest_unblocked_enemy(WORKER_FLEE_RANGE) != null
-		# Redjacks: fight until seriously outnumbered; last stand when no walls remain
+		# Redjacks: fight until seriously outnumbered; last stand when no walls remain.
+		# ASSAULTING included — a failed charge ROUTS home instead of dying to a pack.
 		# REPOSITIONING excluded — let them reach the wall before becoming flee-eligible
-		State.PATROL, State.ENGAGE, State.DEFENDING:
+		State.PATROL, State.ENGAGE, State.DEFENDING, State.ASSAULTING:
 			if get_tree().get_nodes_in_group("walls").is_empty():
 				return false  # last stand — hold the encampment, no retreat
 			var count: int = 0
@@ -1101,11 +1102,12 @@ func _on_attack_ordered() -> void:
 	state = State.ASSAULTING
 
 func _do_assault(delta: float) -> void:
-	# The war here is over — nothing left to charge
-	if get_tree().get_nodes_in_group("portals").is_empty() \
-			and get_tree().get_nodes_in_group("enemies").is_empty():
+	# The charge targets the PORTAL. When it falls, come home and meet the
+	# counterattack from behind the walls — not scattered in the open.
+	if get_tree().get_nodes_in_group("portals").is_empty():
+		GameState.is_attack_phase = false
 		_target_enemy = null
-		state = State.PATROL
+		_start_repositioning()
 		return
 	# Extended detect range — includes bosses (in "enemies" group)
 	var target: Node2D = _find_nearest_enemy(ENEMY_DETECT_RANGE * 2.5)

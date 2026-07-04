@@ -7,10 +7,11 @@ const PLANETS: Array[Dictionary] = [
 	{"id": "earth", "label": "EARTH — Last City", "desc": "Fallen · single front"},
 	{"id": "cosmodrome", "label": "EARTH — Cosmodrome", "desc": "Fallen · attacks from BOTH sides"},
 	{"id": "moon", "label": "MOON — Hellmouth", "desc": "Hive · it is ALWAYS night here"},
+	{"id": "mars", "label": "MARS — Meridian Bay", "desc": "Cabal · drop pods land INSIDE your lines"},
 ]
 
 @onready var _title: Label = $Title
-@onready var _option_labels: Array[Label] = [$Option0, $Option1, $Option2]
+@onready var _option_labels: Array[Label] = [$Option0, $Option1, $Option2, $Option3]
 @onready var _desc: Label = $Desc
 @onready var _hint: Label = $Hint
 

@@ -33,6 +33,7 @@ const PLANET_SCENES: Dictionary = {
 	"earth": "res://scenes/world/earth_highway.tscn",
 	"cosmodrome": "res://scenes/world/cosmodrome.tscn",
 	"moon": "res://scenes/world/moon.tscn",
+	"mars": "res://scenes/world/mars.tscn",
 }
 
 var glimmer: int = 0:

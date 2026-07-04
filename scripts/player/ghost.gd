@@ -12,6 +12,7 @@ const ABILITY_COOLDOWN_MIN := 8.0
 const CALLIN_SCENES: Dictionary = {
 	"golden_gun": preload("res://scenes/world/cayde_callin.tscn"),
 	"striker": preload("res://scenes/world/zavala_callin.tscn"),
+	"well": preload("res://scenes/world/osiris_callin.tscn"),
 }
 
 signal ability_cooldown_updated(fraction: float)  # 1.0 = ready, 0.0 = just used

@@ -47,11 +47,24 @@ func _physics_process(delta: float) -> void:
 		_fire_flamethrower()
 
 func _fire_flamethrower() -> void:
-	# TODO: push all player/frame_npc nodes within FLAME_RANGE left by FLAME_PUSH_FORCE
-	# and apply a burn DoT (apply_burn(damage, duration) method on targets)
 	_flame.modulate.a = 0.9
 	var tween: Tween = create_tween()
 	tween.tween_property(_flame, "modulate:a", 0.0, 0.6)
+	# scorch everything in range: the player sheds glimmer, workers lose
+	# their kit / get knocked dormant
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	if player and global_position.distance_to(player.global_position) < FLAME_RANGE:
+		if player.has_method("take_hit"):
+			player.call("take_hit")
+	for f: Node in get_tree().get_nodes_in_group("frame_npc"):
+		var fn: Node2D = f as Node2D
+		if not fn or not is_instance_valid(fn):
+			continue
+		if not fn.has_method("is_active_worker") or not fn.call("is_active_worker"):
+			continue
+		if global_position.distance_to(fn.global_position) < FLAME_RANGE:
+			if fn.has_method("take_worker_hit"):
+				fn.call("take_worker_hit")
 
 func take_damage(amount: int) -> void:
 	if _is_dying:
@@ -67,7 +80,11 @@ func _die() -> void:
 	for portal: Node in get_tree().get_nodes_in_group("portals"):
 		if portal.has_method("break_portal"):
 			portal.call("break_portal")
-	# TODO: explosion visual + cabal ship departure
+	# fuel tank goes up
+	var boom: Node2D = preload("res://scenes/world/ability_shockwave.tscn").instantiate() as Node2D
+	boom.global_position = global_position
+	get_parent().call_deferred("add_child", boom)
+	Sound.play("thunk", 3.0, 0.5)
 	var tween: Tween = create_tween()
 	tween.tween_property(_sprite, "modulate:a", 0.0, 2.0)
 	tween.chain().tween_callback(queue_free)

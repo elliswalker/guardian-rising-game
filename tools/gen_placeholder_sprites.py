@@ -10,6 +10,7 @@ Run from the Game/ directory:  python tools/gen_placeholder_sprites.py
 
 import os
 from PIL import Image
+from sprite_style import finish
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites")
 
@@ -38,6 +39,7 @@ def px(im, x, y, c):
 
 
 def save(im, *parts):
+    finish(im)  # Art Direction rule 2: one light, the sky
     path = os.path.join(ROOT, *parts)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     im.save(path)

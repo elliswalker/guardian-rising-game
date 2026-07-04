@@ -21,6 +21,7 @@ import math
 import os
 import random
 from PIL import Image
+from sprite_style import finish
 
 W, H = 320, 180
 OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "backgrounds")
@@ -43,6 +44,9 @@ def rect(im, x0, y0, x1, y1, c):
 
 
 def save(im, planet, name):
+    # gentle K2C lit-ridge rim: crest lines catch the sky (no ground shade —
+    # layer bottoms run off-frame)
+    finish(im, rim=1.12, shade=1.0)
     path = os.path.join(OUT, planet, name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     im.save(path)

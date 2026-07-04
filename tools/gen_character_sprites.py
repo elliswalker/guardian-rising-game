@@ -8,6 +8,7 @@ so no scene changes are needed. Run from Game/:
 
 import os
 from PIL import Image
+from sprite_style import finish
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "assets", "sprites")
 
@@ -54,6 +55,7 @@ def shade(c, f):
 
 
 def save(im, *parts):
+    finish(im)  # Art Direction rule 2: one light, the sky
     path = os.path.join(ROOT, *parts)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     im.save(path)

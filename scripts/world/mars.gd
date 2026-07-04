@@ -83,6 +83,7 @@ func _ready() -> void:
 	GameState.portal_active = not GameState.planets_cleared.get(PLANET_NAME, false)
 	GameState.portal_broken.connect(_on_portal_broken)
 	_layout_rng.seed = hash(PLANET_NAME) + GameState.current_run * 7919
+	ParallaxLoader.build($ParallaxBackground, PLANET_NAME)
 	_jitter_layout()
 	_spawn_world_objects()
 	_spawn_initial_caches()
@@ -455,3 +456,5 @@ func _transition_sky(target: Color, duration: float) -> void:
 	var tinted: Color = Color(target.r, target.g, target.b, 0.55)
 	var tween: Tween = create_tween()
 	tween.tween_property(_sky_rect, "color", tinted, duration).set_ease(Tween.EASE_IN_OUT)
+	# the hour lands on the whole world, not just the sky (Kingdom rule)
+	ParallaxLoader.tint(get_tree(), target, duration)

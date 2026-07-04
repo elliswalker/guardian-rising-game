@@ -122,12 +122,19 @@ func _start_lull() -> void:
 func _spawn_lull_wanderers() -> void:
 	if GameState.day_number <= 1:
 		return
+	var min_x: float = 380.0
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if wn and is_instance_valid(wn):
+			min_x = maxf(min_x, wn.global_position.x + 40.0)
+	if min_x >= 680.0:
+		return  # walls own the field
 	for i in 2:
 		var thrall: CharacterBody2D = THRALL_SCENE.instantiate() as CharacterBody2D
 		thrall.set("_start_feral", false)
-		thrall.set("wander_left", 300.0)
+		thrall.set("wander_left", min_x)
 		thrall.set("wander_right", 760.0)
-		thrall.global_position = Vector2(randf_range(380.0, 700.0), 136.0)
+		thrall.global_position = Vector2(randf_range(min_x, 700.0), 136.0)
 		add_child(thrall)
 
 func _process_lull(delta: float) -> void:

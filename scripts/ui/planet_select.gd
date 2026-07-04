@@ -19,7 +19,7 @@ var _cursor: int = 0
 
 func _ready() -> void:
 	_title.text = "SELECT DESTINATION"
-	_hint.text = "[ LEFT / RIGHT ]  choose      [ SPACE ]  launch"
+	_hint.text = "[ UP / DOWN ]  choose      [ SPACE ]  launch"
 	# default cursor to somewhere you aren't
 	for i in PLANETS.size():
 		if PLANETS[i]["id"] != GameState.current_planet:
@@ -28,10 +28,11 @@ func _ready() -> void:
 	_refresh()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("move_left"):
+	# vertical list, vertical keys (arrows / d-pad)
+	if event.is_action_pressed("ui_up"):
 		_cursor = maxi(_cursor - 1, 0)
 		_refresh()
-	elif event.is_action_pressed("move_right"):
+	elif event.is_action_pressed("ui_down"):
 		_cursor = mini(_cursor + 1, PLANETS.size() - 1)
 		_refresh()
 	elif event.is_action_pressed("action"):

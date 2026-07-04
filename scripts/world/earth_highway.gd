@@ -396,13 +396,26 @@ func _spawn_world_objects() -> void:
 
 # ── SPAWNING ──────────────────────────────────────────────────────────────────
 
+# Day wanderers belong OUTSIDE your borders - never behind the walls
+func _day_frontier(base: float) -> float:
+	var frontier: float = base
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if wn and is_instance_valid(wn):
+			frontier = maxf(frontier, wn.global_position.x + 40.0)
+	return frontier
+
 func _spawn_day_dregs() -> void:
 	var day: int = GameState.day_number
 	var count: int = DAY_DREG_COUNT + (1 if day >= 3 else 0) + (1 if day >= 5 else 0)
+	var min_x: float = _day_frontier(DAY_DREG_MIN_X)
+	if min_x >= DAY_DREG_MAX_X - 20.0:
+		return  # walls own the whole field
 	for i in count:
 		var dreg: CharacterBody2D = DREG_SCENE.instantiate() as CharacterBody2D
 		dreg.set("_start_feral", false)
-		dreg.global_position = Vector2(randf_range(DAY_DREG_MIN_X, DAY_DREG_MAX_X), 136.0)
+		dreg.set("wander_left", min_x)
+		dreg.global_position = Vector2(randf_range(min_x, DAY_DREG_MAX_X), 136.0)
 		add_child(dreg)
 
 func _spawn_day_wildlife() -> void:

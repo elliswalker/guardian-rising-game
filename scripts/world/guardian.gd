@@ -51,8 +51,11 @@ const UPGRADE_COST := 50
 # How often a defending redjack checks if its wall is still standing
 const GUARD_SCAN_INTERVAL := 0.5
 # Redjacks hunt wildlife on patrol — the Kingdom archer income role.
-# Range deliberately exceeds the patrol bound so hunters roam into the field after prey.
+# They SHOOT from the line rather than chasing; prey out of reach is let go.
 const WILDLIFE_HUNT_RANGE := 160.0
+const HUNT_SHOOT_RANGE    := 70.0
+# Kingdom archers miss from the ground — volume of fire and towers matter
+const GROUND_ACCURACY     := 0.6
 # Idle sweeperbots near the encampment trickle passive glimmer
 const SWEEP_TRICKLE_INTERVAL := 4.0
 const SWEEP_TRICKLE_AMOUNT   := 2
@@ -669,22 +672,29 @@ func _do_patrol(delta: float) -> void:
 		_target_enemy = enemy
 		state = State.ENGAGE
 		return
-	# No threats — hunt wildlife for glimmer (income is the patrol's day job)
+	# No threats — hunt wildlife for glimmer (income is the patrol's day job).
+	# Kingdom style: shoot from the line, miss sometimes, never marathon-chase.
 	_attack_timer -= delta
+	var left_bound: float = _patrol_left_bound()
+	var right_bound: float = _patrol_right_bound()
 	var prey: Node2D = _find_nearest_wildlife()
 	if prey:
 		var dist: float = global_position.distance_to(prey.global_position)
-		if dist <= ATTACK_RANGE_ENGAGE:
+		if dist <= HUNT_SHOOT_RANGE:
 			velocity.x = 0.0
 			if _attack_timer <= 0.0:
 				_attack_timer = ATTACK_COOLDOWN
-				prey.call("take_damage", 1)
 				_flash_attack()
-		else:
-			velocity.x = sign(prey.global_position.x - global_position.x) * PATROL_SPEED
-		return
-	var left_bound: float = _patrol_left_bound()
-	var right_bound: float = _patrol_right_bound()
+				Sound.play("shot", -16.0, randf_range(1.4, 1.6))
+				if randf() < GROUND_ACCURACY:
+					prey.call("take_damage", 1)
+			return
+		# amble closer only while staying on the patrol line — else let it go
+		var step: float = sign(prey.global_position.x - global_position.x)
+		var next_x: float = global_position.x + step * 4.0
+		if next_x > left_bound - 10.0 and next_x < right_bound + 10.0:
+			velocity.x = step * PATROL_SPEED
+			return
 	if global_position.x >= right_bound:
 		_patrol_dir = -1.0
 	elif global_position.x <= left_bound:
@@ -1015,8 +1025,10 @@ func exit_tower() -> void:
 func _do_attack(attack_range: float) -> void:
 	var nearest: Node2D = _find_nearest_enemy(attack_range)
 	if nearest and nearest.has_method("take_damage"):
-		nearest.take_damage(1)
 		_flash_attack()
+		# ground shots miss (Kingdom archer rule); towers/ballistas don't
+		if randf() < GROUND_ACCURACY:
+			nearest.take_damage(1)
 
 func _flash_attack() -> void:
 	var restore_color: Color = _sprite.modulate
@@ -1060,6 +1072,12 @@ func _on_attack_ordered() -> void:
 	state = State.ASSAULTING
 
 func _do_assault(delta: float) -> void:
+	# The war here is over — nothing left to charge
+	if get_tree().get_nodes_in_group("portals").is_empty() \
+			and get_tree().get_nodes_in_group("enemies").is_empty():
+		_target_enemy = null
+		state = State.PATROL
+		return
 	# Extended detect range — includes bosses (in "enemies" group)
 	var target: Node2D = _find_nearest_enemy(ENEMY_DETECT_RANGE * 2.5)
 	if target:

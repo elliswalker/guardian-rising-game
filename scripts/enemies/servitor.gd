@@ -7,8 +7,10 @@ const TETHER_INTERVAL  := 4.5
 const TETHER_DURATION  := 2.2
 const HOVER_AMPLITUDE  := 7.0
 const HOVER_SPEED      := 1.4
-const PATROL_LEFT_X    := 650.0
-const PATROL_RIGHT_X   := 750.0
+# Patrol is anchored to the spawn point — a portal guardian never leaves
+# its portal (hardcoded map coords sent Cosmodrome's left servitor drifting
+# across the whole camp).
+const PATROL_HALF_SPAN := 55.0
 
 const COLOR_HEALTHY := Color.WHITE
 const COLOR_DAMAGED := Color(1.0, 0.5, 0.5, 1.0)
@@ -23,6 +25,7 @@ var _is_dying: bool = false
 var _tether_timer: float = TETHER_INTERVAL * 0.6
 var _hover_time: float = 0.0
 var _patrol_dir: float = -1.0
+var _home_x: float = 0.0
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -30,6 +33,7 @@ func _ready() -> void:
 	collision_layer = 32
 	collision_mask = 0   # floats, doesn't walk on ground
 	motion_mode = MOTION_MODE_FLOATING
+	_home_x = global_position.x
 	_update_visual()
 
 func _physics_process(delta: float) -> void:
@@ -38,9 +42,9 @@ func _physics_process(delta: float) -> void:
 	_hover_time += delta
 	velocity.x = _patrol_dir * MOVE_SPEED
 	velocity.y = sin(_hover_time * HOVER_SPEED) * HOVER_AMPLITUDE * 2.5
-	if global_position.x <= PATROL_LEFT_X:
+	if global_position.x <= _home_x - PATROL_HALF_SPAN:
 		_patrol_dir = 1.0
-	elif global_position.x >= PATROL_RIGHT_X:
+	elif global_position.x >= _home_x + PATROL_HALF_SPAN:
 		_patrol_dir = -1.0
 	move_and_slide()
 	_tether_timer -= delta

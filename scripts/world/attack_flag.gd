@@ -31,7 +31,8 @@ func _on_day_started(_day: int) -> void:
 		_label.text = _orig_label
 
 func _process(_delta: float) -> void:
-	if _player_nearby and not _activated:
+	# no charge to send once the planet is quiet
+	if _player_nearby and not _activated and GameState.portal_active:
 		var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 		var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 		GameState.show_action_prompt(self, "[ SPACE ]  Send the Charge", 8, pdist)

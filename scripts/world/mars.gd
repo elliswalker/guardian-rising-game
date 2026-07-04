@@ -134,10 +134,17 @@ func _start_day() -> void:
 func _spawn_day_scavengers() -> void:
 	if GameState.day_number <= 1:
 		return
+	var min_x: float = 350.0
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if wn and is_instance_valid(wn):
+			min_x = maxf(min_x, wn.global_position.x + 40.0)
+	if min_x >= 700.0:
+		return  # walls own the field
 	for i in 2:
 		var psion: CharacterBody2D = PSION_SCENE.instantiate() as CharacterBody2D
 		psion.set("day_scavenger", true)
-		psion.global_position = Vector2(randf_range(350.0, 720.0), 136.0)
+		psion.global_position = Vector2(randf_range(min_x, 720.0), 136.0)
 		add_child(psion)
 
 func _process_day(delta: float) -> void:

@@ -314,6 +314,21 @@ func _spawn_enemy_on_side(side: float) -> void:
 	enemy.global_position = marker.global_position
 	add_child(enemy)
 
+# Wanderers stay beyond that side's outermost wall
+func _day_frontier(side: float, base: float) -> float:
+	var frontier: float = base
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if not wn or not is_instance_valid(wn):
+			continue
+		if wn.global_position.x * side <= 0.0:
+			continue
+		if side > 0.0:
+			frontier = maxf(frontier, wn.global_position.x + 40.0)
+		else:
+			frontier = minf(frontier, wn.global_position.x - 40.0)
+	return frontier
+
 func _spawn_day_dregs() -> void:
 	var day: int = GameState.day_number
 	var count: int = 2 + (1 if day >= 3 else 0) + (1 if day >= 5 else 0)
@@ -323,13 +338,19 @@ func _spawn_day_dregs() -> void:
 		dreg.set("_start_feral", false)
 		_configure_side(dreg, side)
 		if side > 0.0:
-			dreg.set("wander_left", 250.0)
+			var min_x: float = _day_frontier(1.0, 350.0)
+			if min_x >= 680.0:
+				continue
+			dreg.set("wander_left", min_x)
 			dreg.set("wander_right", 780.0)
-			dreg.global_position = Vector2(randf_range(350.0, 700.0), 136.0)
+			dreg.global_position = Vector2(randf_range(min_x, 700.0), 136.0)
 		else:
+			var max_x: float = _day_frontier(-1.0, -350.0)
+			if max_x <= -680.0:
+				continue
 			dreg.set("wander_left", -780.0)
-			dreg.set("wander_right", -250.0)
-			dreg.global_position = Vector2(randf_range(-700.0, -350.0), 136.0)
+			dreg.set("wander_right", max_x)
+			dreg.global_position = Vector2(randf_range(-700.0, max_x), 136.0)
 		add_child(dreg)
 
 func _spawn_day_wildlife() -> void:

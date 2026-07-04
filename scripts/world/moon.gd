@@ -79,6 +79,7 @@ func _ready() -> void:
 	ParallaxLoader.build($ParallaxBackground, PLANET_NAME)
 	_jitter_layout()
 	_spawn_world_objects()
+	_spawn_shoreline()
 	_spawn_initial_caches()
 	_restore_planet_state()
 	_start_lull()
@@ -88,10 +89,6 @@ func _jitter_layout() -> void:
 		var sn: Node2D = site as Node2D
 		if sn:
 			sn.global_position.x += _layout_rng.randf_range(-18.0, 18.0)
-	for f: Node in get_tree().get_nodes_in_group("frame_npc"):
-		var fn: Node2D = f as Node2D
-		if fn:
-			fn.global_position.x += _layout_rng.randf_range(-25.0, 25.0)
 
 func _process(delta: float) -> void:
 	match _phase:
@@ -246,6 +243,23 @@ func _on_portal_broken(_faction: String) -> void:
 
 # ── WORLD SETUP ───────────────────────────────────────────────────────────────
 
+
+# The land ends in liquid, not a cliff (#25)
+func _spawn_shoreline() -> void:
+	var water_n720 := ColorRect.new()
+	water_n720.color = Color(0.04, 0.04, 0.10, 1.0)
+	water_n720.position = Vector2(-720.0, 152.0)
+	water_n720.size = Vector2(335.0, 260.0)
+	add_child(water_n720)
+	var surf_n720 := ColorRect.new()
+	surf_n720.color = Color(0.14, 0.14, 0.26, 0.9)
+	surf_n720.position = Vector2(-720.0, 152.0)
+	surf_n720.size = Vector2(335.0, 2.0)
+	add_child(surf_n720)
+	var tw_n720: Tween = surf_n720.create_tween().set_loops()
+	tw_n720.tween_property(surf_n720, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
+	tw_n720.tween_property(surf_n720, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
+
 func _spawn_world_objects() -> void:
 	var ship: Node2D = SHIP_SCENE.instantiate() as Node2D
 	ship.position = Vector2(-280.0, 142.0)
@@ -328,10 +342,27 @@ func _try_spawn_frame() -> void:
 			dormant += 1
 	if dormant >= MAX_DORMANT_FRAMES:
 		return
-	var spawn_x: float = FRAME_SPAWN_XS[randi() % FRAME_SPAWN_XS.size()]
+	var spawn_x: float = _free_camp_x()
+	if is_nan(spawn_x):
+		return  # every camp is occupied
 	var frame: CharacterBody2D = FRAME_SCENE.instantiate() as CharacterBody2D
 	frame.global_position = Vector2(spawn_x, 136.0)
 	add_child(frame)
+
+# Lockers are landmarks (Kingdom vagrant camps): respawns take the first
+# FREE authored camp position instead of a random spot.
+func _free_camp_x() -> float:
+	for spawn_x: float in FRAME_SPAWN_XS:
+		var taken: bool = false
+		for f: Node in get_tree().get_nodes_in_group("frame_npc"):
+			var fn: Node2D = f as Node2D
+			if fn and is_instance_valid(fn) and absf(fn.global_position.x - spawn_x) < 22.0:
+				taken = true
+				break
+		if not taken:
+			return spawn_x
+	return NAN
+
 
 # ── PLANET STATE (EP-07 away simulation) ─────────────────────────────────────
 

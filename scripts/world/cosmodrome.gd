@@ -91,6 +91,7 @@ func _ready() -> void:
 	_jitter_layout()
 	_spawn_trees()
 	_spawn_world_objects()
+	_spawn_shoreline()
 	_spawn_initial_caches()
 	_restore_planet_state()
 	_start_day()
@@ -246,16 +247,42 @@ func _jitter_layout() -> void:
 		var sn: Node2D = site as Node2D
 		if sn:
 			sn.global_position.x += _layout_rng.randf_range(-18.0, 18.0)
-	for f: Node in get_tree().get_nodes_in_group("frame_npc"):
-		var fn: Node2D = f as Node2D
-		if fn:
-			fn.global_position.x += _layout_rng.randf_range(-25.0, 25.0)
 
 func _spawn_trees() -> void:
 	for x: float in TREE_POSITIONS:
 		var tree: Node2D = TREE_SCENE.instantiate() as Node2D
 		tree.position = Vector2(x + _layout_rng.randf_range(-25.0, 25.0), 148.0)
 		add_child(tree)
+
+
+# The land ends in liquid, not a cliff (#25)
+func _spawn_shoreline() -> void:
+	var water_n1420 := ColorRect.new()
+	water_n1420.color = Color(0.14, 0.18, 0.24, 1.0)
+	water_n1420.position = Vector2(-1420.0, 152.0)
+	water_n1420.size = Vector2(165.0, 260.0)
+	add_child(water_n1420)
+	var surf_n1420 := ColorRect.new()
+	surf_n1420.color = Color(0.30, 0.38, 0.48, 0.9)
+	surf_n1420.position = Vector2(-1420.0, 152.0)
+	surf_n1420.size = Vector2(165.0, 2.0)
+	add_child(surf_n1420)
+	var tw_n1420: Tween = surf_n1420.create_tween().set_loops()
+	tw_n1420.tween_property(surf_n1420, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
+	tw_n1420.tween_property(surf_n1420, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
+	var water_1255 := ColorRect.new()
+	water_1255.color = Color(0.14, 0.18, 0.24, 1.0)
+	water_1255.position = Vector2(1255.0, 152.0)
+	water_1255.size = Vector2(165.0, 260.0)
+	add_child(water_1255)
+	var surf_1255 := ColorRect.new()
+	surf_1255.color = Color(0.30, 0.38, 0.48, 0.9)
+	surf_1255.position = Vector2(1255.0, 152.0)
+	surf_1255.size = Vector2(165.0, 2.0)
+	add_child(surf_1255)
+	var tw_1255: Tween = surf_1255.create_tween().set_loops()
+	tw_1255.tween_property(surf_1255, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
+	tw_1255.tween_property(surf_1255, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
 
 func _spawn_world_objects() -> void:
 	# The ship you landed in — leave whenever you like
@@ -387,10 +414,27 @@ func _try_spawn_frame() -> void:
 			dormant += 1
 	if dormant >= MAX_DORMANT_FRAMES:
 		return
-	var spawn_x: float = FRAME_SPAWN_XS[randi() % FRAME_SPAWN_XS.size()]
+	var spawn_x: float = _free_camp_x()
+	if is_nan(spawn_x):
+		return  # every camp is occupied
 	var frame: CharacterBody2D = FRAME_SCENE.instantiate() as CharacterBody2D
 	frame.global_position = Vector2(spawn_x, 136.0)
 	add_child(frame)
+
+# Lockers are landmarks (Kingdom vagrant camps): respawns take the first
+# FREE authored camp position instead of a random spot.
+func _free_camp_x() -> float:
+	for spawn_x: float in FRAME_SPAWN_XS:
+		var taken: bool = false
+		for f: Node in get_tree().get_nodes_in_group("frame_npc"):
+			var fn: Node2D = f as Node2D
+			if fn and is_instance_valid(fn) and absf(fn.global_position.x - spawn_x) < 22.0:
+				taken = true
+				break
+		if not taken:
+			return spawn_x
+	return NAN
+
 
 # ── PLANET STATE (EP-07 away simulation — same rules as Earth) ────────────────
 

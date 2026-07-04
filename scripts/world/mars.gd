@@ -14,6 +14,7 @@ const COLOSSUS_SCENE  := preload("res://scenes/enemies/colossus.tscn")
 const CACHE_SCENE     := preload("res://scenes/world/glimmer_cache.tscn")
 const FRAME_SCENE     := preload("res://scenes/world/guardian.tscn")
 const SHIP_SCENE      := preload("res://scenes/world/ship.tscn")
+const BEACON_SCENE    := preload("res://scenes/world/beacon.tscn")
 const PORTAL_SCENE    := preload("res://scenes/world/portal.tscn")
 const FLAG_SCENE      := preload("res://scenes/world/attack_flag.tscn")
 const WALL_SCENE      := preload("res://scenes/world/wall.tscn")
@@ -381,6 +382,11 @@ func _spawn_world_objects() -> void:
 	ship.position = Vector2(-90.0, 142.0)
 	add_child(ship)
 
+	# the away-decay Beacon stands with the camp (#40)
+	var beacon: Area2D = BEACON_SCENE.instantiate() as Area2D
+	beacon.position = Vector2(-115.0, 148.0)
+	add_child(beacon)
+
 	# TWO drop-pod launch sites — Mars's portals, one per flank
 	var site_r: Node2D = PORTAL_SCENE.instantiate() as Node2D
 	site_r.position = Vector2(880.0, 148.0)
@@ -538,7 +544,9 @@ func _restore_planet_state() -> void:
 func _simulate_away_nights(st: Dictionary) -> void:
 	if GameState.planets_cleared.get(PLANET_NAME, false):
 		return
-	var nights: int = maxi(GameState.day_number - int(st["departed_day"]), 0)
+	# The Beacon holds the line while you're away (#40)
+	var protected: int = GameState.beacon_nights(PLANET_NAME)
+	var nights: int = maxi(GameState.day_number - int(st["departed_day"]) - protected, 0)
 	var walls: Array = st["walls"]
 	var workers: Array = st["workers"]
 	var enc: float = GameState.encampment_x

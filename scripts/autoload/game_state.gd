@@ -60,6 +60,20 @@ func camp_tier() -> int:
 func set_camp_tier(tier: int) -> void:
 	encampment_tiers[current_planet] = tier
 
+# Away-decay Beacon (#40) — the lighthouse analog. Per planet, tier 0-3;
+# each tier protects 0/10/20/30 away-nights from the decay simulation.
+var beacon_tiers: Dictionary = {}
+
+func beacon_tier() -> int:
+	return int(beacon_tiers.get(current_planet, 0))
+
+func set_beacon_tier(tier: int) -> void:
+	beacon_tiers[current_planet] = tier
+
+func beacon_nights(planet: String) -> int:
+	var protections: Array[int] = [0, 10, 20, 30]
+	return protections[clampi(int(beacon_tiers.get(planet, 0)), 0, 3)]
+
 # ── Ghosts & supers (EP-08) ──────────────────────────────────────────────────
 var legendary_shards: int = 0
 var equipped_super: String = ""      # "" until an elemental Ghost is found
@@ -136,6 +150,7 @@ func save_game() -> void:
 		"unlocked_supers": unlocked_supers,
 		"mote_reduction": mote_reduction,
 		"encampment_tiers": encampment_tiers,
+		"beacon_tiers": beacon_tiers,
 		"current_planet": current_planet,
 		"ships_built": ships_built,
 		"stone_unlocked": stone_unlocked,
@@ -181,6 +196,7 @@ func load_game() -> bool:
 	unlocked_supers.assign(d.get("unlocked_supers", []))
 	mote_reduction = float(d.get("mote_reduction", 0.0))
 	encampment_tiers = d.get("encampment_tiers", {})
+	beacon_tiers = d.get("beacon_tiers", {})
 	current_planet = String(d.get("current_planet", "earth"))
 	ships_built = d.get("ships_built", {})
 	stone_unlocked = bool(d.get("stone_unlocked", false))
@@ -327,6 +343,7 @@ func new_run() -> void:
 	vaulted_glimmer = 0
 	vault_changed.emit(0)
 	encampment_tiers.clear()
+	beacon_tiers.clear()
 	legendary_shards = 0
 	equipped_super = ""
 	unlocked_supers.clear()

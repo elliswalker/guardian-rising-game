@@ -272,8 +272,32 @@ def gen_glimmer_crystal():
     save(im, "world", "glimmer_crystal.png")
 
 
+# ── beacon.png 12x42 — signal mast with lamp cage (tier tint = modulate) ─────
+def gen_beacon():
+    im = canvas(12, 42)
+    # tripod base
+    rect(im, 1, 38, 3, 41, W3)
+    rect(im, 8, 38, 10, 41, W3)
+    rect(im, 4, 36, 7, 41, W2)
+    # mast with guy-line hints
+    rect(im, 5, 8, 6, 36, W2)
+    rect(im, 5, 8, 5, 36, W1)
+    px(im, 2, 20, W4)
+    px(im, 9, 24, W4)
+    for y in range(12, 36, 6):     # rung marks
+        rect(im, 4, y, 7, y, W3)
+    # lamp cage at the top
+    rect(im, 2, 2, 9, 8, W3)
+    rect(im, 3, 3, 8, 7, W4)       # cage interior (lamp ColorRect sits here)
+    rect(im, 2, 2, 9, 2, W1)       # cage cap
+    px(im, 5, 0, W2)               # antenna tip
+    px(im, 6, 1, W2)
+    save(im, "structures", "beacon.png")
+
+
 if __name__ == "__main__":
     gen_camp()
+    gen_beacon()
     gen_camp_towers()
     gen_job_banner()
     gen_vault_pad()

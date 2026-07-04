@@ -21,4 +21,7 @@ func _play_opening() -> void:
 	tween.tween_callback(_go_to_game)
 
 func _go_to_game() -> void:
+	# Resume a saved run where it left off; otherwise begin at the Last City
+	if GameState.has_save() and GameState.load_game():
+		return
 	get_tree().change_scene_to_file("res://scenes/world/earth_highway.tscn")

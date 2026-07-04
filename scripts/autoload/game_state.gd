@@ -24,6 +24,7 @@ signal portal_broken(faction: String)
 signal victory
 
 const GLIMMER_CAP := 1000
+const SAVE_PATH := "user://guardian_rising_save.json"
 
 # Set by each level controller in _ready — Earth camp sits left, Cosmodrome center
 var encampment_x: float = -100.0
@@ -92,6 +93,98 @@ var _prompt_priority: int = 0
 var _prompt_text: String = ""
 var _prompt_dist: float = 999999.0
 
+func _ready() -> void:
+	# Autosave at every dawn — the Kingdom rhythm: each survived night is kept
+	day_started.connect(func(_d: int) -> void: save_game())
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and current_run > 0:
+		save_game()
+
+# ── Save / Load (M4-04). Permadeath: death or victory wipes the save. ────────
+
+func save_game() -> void:
+	if current_run <= 0:
+		return
+	# fold the live planet into planet_states so one snapshot covers everything
+	var world: Node = get_tree().get_first_node_in_group("world")
+	if world and world.has_method("save_planet_state"):
+		world.call("save_planet_state")
+	var data: Dictionary = {
+		"version": 1,
+		"current_run": current_run,
+		"day_number": day_number,
+		"glimmer": glimmer,
+		"vaulted_glimmer": vaulted_glimmer,
+		"legendary_shards": legendary_shards,
+		"equipped_super": equipped_super,
+		"unlocked_supers": unlocked_supers,
+		"mote_reduction": mote_reduction,
+		"encampment_tier": encampment_tier,
+		"current_planet": current_planet,
+		"ship_repaired": ship_repaired,
+		"stone_unlocked": stone_unlocked,
+		"metal_unlocked": metal_unlocked,
+		"planets_cleared": planets_cleared,
+		"planet_states": planet_states,
+		"used_hermits": used_hermits,
+		"redjack_jobs_available": redjack_jobs_available,
+		"sweeperbot_jobs_available": sweeperbot_jobs_available,
+		"builder_jobs_available": builder_jobs_available,
+	}
+	var f: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(data))
+
+func has_save() -> bool:
+	return FileAccess.file_exists(SAVE_PATH)
+
+func clear_save() -> void:
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+
+# Resumes at the morning of the day the save was made (save fires at dawn,
+# level _ready re-runs _start_day which re-increments the counter).
+func load_game() -> bool:
+	if not has_save():
+		return false
+	var f: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if not f:
+		return false
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	if not (parsed is Dictionary):
+		return false
+	var d: Dictionary = parsed
+	current_run = int(d.get("current_run", 1))
+	day_number = int(d.get("day_number", 1)) - 1  # _start_day adds it back
+	glimmer = int(d.get("glimmer", 0))
+	vaulted_glimmer = int(d.get("vaulted_glimmer", 0))
+	vault_changed.emit(vaulted_glimmer)
+	legendary_shards = int(d.get("legendary_shards", 0))
+	shards_changed.emit(legendary_shards)
+	equipped_super = String(d.get("equipped_super", ""))
+	unlocked_supers.assign(d.get("unlocked_supers", []))
+	mote_reduction = float(d.get("mote_reduction", 0.0))
+	encampment_tier = int(d.get("encampment_tier", 1))
+	current_planet = String(d.get("current_planet", "earth"))
+	ship_repaired = bool(d.get("ship_repaired", false))
+	stone_unlocked = bool(d.get("stone_unlocked", false))
+	metal_unlocked = bool(d.get("metal_unlocked", false))
+	planets_cleared = d.get("planets_cleared", {})
+	planet_states = d.get("planet_states", {})
+	used_hermits.assign(d.get("used_hermits", []))
+	redjack_jobs_available = int(d.get("redjack_jobs_available", 0))
+	sweeperbot_jobs_available = int(d.get("sweeperbot_jobs_available", 0))
+	builder_jobs_available = int(d.get("builder_jobs_available", 0))
+	is_ghost_captured = false
+	is_attack_phase = false
+	portal_active = not planets_cleared.get(current_planet, false)
+	_game_over_triggered = false
+	_victory_triggered = false
+	travel_mode = true  # tells the level _ready not to reset the run
+	get_tree().change_scene_to_file(PLANET_SCENES[current_planet])
+	return true
+
 func add_glimmer(amount: int) -> void:
 	glimmer += amount
 
@@ -134,6 +227,7 @@ func trigger_game_over() -> void:
 	if _game_over_triggered:
 		return
 	_game_over_triggered = true
+	clear_save()  # permadeath — the Light is gone, the run is gone
 	game_over.emit()
 	await get_tree().create_timer(0.1).timeout
 	get_tree().change_scene_to_file("res://scenes/ui/game_over.tscn")
@@ -144,6 +238,7 @@ func trigger_victory() -> void:
 	if _victory_triggered:
 		return
 	_victory_triggered = true
+	clear_save()  # the campaign is complete
 	victory.emit()
 	await get_tree().create_timer(0.1).timeout
 	get_tree().change_scene_to_file("res://scenes/ui/victory.tscn")
@@ -196,6 +291,7 @@ func has_active_prompt() -> bool:
 	return _prompt_owner != null and is_instance_valid(_prompt_owner)
 
 func new_run() -> void:
+	clear_save()
 	current_run += 1
 	glimmer = 0
 	vaulted_glimmer = 0

@@ -23,12 +23,20 @@ signal attack_ordered
 signal portal_broken(faction: String)
 signal victory
 
-const GLIMMER_CAP := 1000
+# Carried glimmer is also your armor (EP-01), so the cap is a real ceiling:
+# 2000 gives headroom for T4 encampment (600) + forge (500) saving runs
+# while keeping "how much am I carrying" a meaningful risk decision.
+# (PRD's 25k was pre-armor; revisit after balance playtests.)
+const GLIMMER_CAP := 2000
 const SAVE_PATH := "user://guardian_rising_save.json"
 
 # Set by each level controller in _ready — Earth camp sits left, Cosmodrome center
 var encampment_x: float = -100.0
 var dual_front: bool = false
+
+# EP-12 no-text migration v1: compact prompts, no wave banners — the sky
+# and audio carry the announcements. Flip false to restore verbose text.
+var minimal_ui: bool = true
 
 const PLANET_SCENES: Dictionary = {
 	"earth": "res://scenes/world/earth_highway.tscn",

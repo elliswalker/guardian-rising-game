@@ -17,16 +17,31 @@ const COLOR_HIT     := Color(0.5, 1.0, 0.6, 1.0)
 
 @onready var _sprite: CanvasItem = $ThrallSprite
 
+# Set false before add_child for a lull-wanderer (Moon ambience): shuffles
+# in the dark, bolts when hit, turns feral when the surge warning sounds.
+var _start_feral: bool = true
+var wander_left: float = 250.0
+var wander_right: float = 750.0
+
 var _is_dying: bool = false
 var _wall_attack_timer: float = 0.0
 var _frame_target: Node2D = null
 var _retreating: bool = false
+var _wandering: bool = false
+var _wander_dir: float = 1.0
+var _wander_timer: float = 0.0
 
 func _ready() -> void:
 	add_to_group("enemies")
 	collision_layer = 32
 	collision_mask = 7
 	_wall_attack_timer = randf() * WALL_ATTACK_COOLDOWN
+	if not _start_feral:
+		_wandering = true
+		_wander_dir = [-1.0, 1.0][randi() % 2]
+		_wander_timer = randf_range(1.2, 3.5)
+	GameState.dusk_triggered.connect(func(_d: int) -> void:
+		_wandering = false)
 	GameState.dawn_triggered.connect(func(_d: int) -> void:
 		if not _is_dying: _retreating = true
 	)
@@ -43,6 +58,18 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		if global_position.x > RETREAT_EXIT_X:
 			queue_free()
+		return
+	if _wandering:
+		_wander_timer -= delta
+		if _wander_timer <= 0.0:
+			_wander_timer = randf_range(1.2, 3.5)
+			_wander_dir = [-1.0, 1.0][randi() % 2]
+		if global_position.x <= wander_left and _wander_dir < 0.0:
+			_wander_dir = 1.0
+		elif global_position.x >= wander_right and _wander_dir > 0.0:
+			_wander_dir = -1.0
+		velocity.x = _wander_dir * 5.0
+		move_and_slide()
 		return
 	_frame_target = _find_nearest_frame()
 	if _frame_target and is_instance_valid(_frame_target):

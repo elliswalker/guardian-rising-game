@@ -28,6 +28,9 @@ const COLOR_LOOT    := Color(1.0, 0.85, 0.25, 1.0)
 
 var march_dir: float = -1.0
 var exit_x: float = 850.0
+# Day scavenger (Mars ambience): only hunts ground loot — racing your
+# sweeperbots for caches. No swiping, no frame attacks until dusk.
+var day_scavenger: bool = false
 
 var _state: State = State.FERAL
 var _frame_target: Node2D = null
@@ -42,6 +45,8 @@ func _ready() -> void:
 	collision_layer = 32
 	collision_mask = 7
 	_wall_attack_timer = randf() * WALL_ATTACK_COOLDOWN
+	GameState.dusk_triggered.connect(func(_d: int) -> void:
+		day_scavenger = false)  # the war resumes at dusk
 	GameState.dawn_triggered.connect(func(_d: int) -> void:
 		if not _is_dying:
 			retreat())
@@ -74,6 +79,11 @@ func _do_feral(delta: float) -> void:
 			_grab_loot(loot)
 		else:
 			velocity.x = sign(to_loot.x) * MOVE_SPEED
+		move_and_slide()
+		return
+	# Day scavengers only loot — no fighting until dusk
+	if day_scavenger:
+		velocity.x = (march_dir if int(Time.get_ticks_msec() / 2600.0) % 2 == 0 else -march_dir) * 6.0
 		move_and_slide()
 		return
 	# 2. Wealthy player

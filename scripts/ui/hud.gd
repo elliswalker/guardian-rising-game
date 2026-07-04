@@ -67,6 +67,10 @@ func _on_wave_changed(wave: int) -> void:
 	var fade: Tween = create_tween()
 	fade.tween_property(dusk_label, "modulate:a", 0.0, 0.4)
 
+	# EP-12: in minimal UI the sky and the wave cue ARE the announcement
+	if GameState.minimal_ui:
+		return
+
 	wave_alert.show_wave(wave, _faction_for_wave(wave))
 
 	wave_label.text = "WAVE %d" % wave
@@ -93,6 +97,8 @@ func _on_dusk_timer_updated(seconds: int) -> void:
 	ghost_icon.set_dusk_urgency(urgency)
 
 func _on_dawn_triggered(_day_number: int) -> void:
+	if GameState.minimal_ui:
+		return  # the dawn chime and brightening sky say it
 	if _wave_tween:
 		_wave_tween.kill()
 	wave_label.text = "DAWN"
@@ -126,6 +132,10 @@ func _to_roman(n: int) -> String:
 	return result
 
 func _on_action_prompt_show(text: String) -> void:
+	# EP-12 v1: compact the scaffolding — strip the key hint, tighten
+	# separators. Full icon glyphs come once sprite readability is confirmed.
+	if GameState.minimal_ui:
+		text = text.replace("[ SPACE ]  ", "").replace("  —  ", " · ").replace("   ", "  ")
 	action_prompt.text = text
 	var tween: Tween = create_tween()
 	tween.tween_property(action_prompt, "modulate:a", 1.0, 0.25)

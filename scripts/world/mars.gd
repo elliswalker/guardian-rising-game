@@ -124,8 +124,20 @@ func _start_day() -> void:
 		_sun_disc.visible = true
 		_update_sun()
 	_spawn_day_caches()
+	_spawn_day_scavengers()
 	_try_spawn_frame()
 	GameState.day_started.emit(day)
+
+# Psion scavengers prowl the field by day, racing your sweeperbots for
+# caches. They don't fight until dusk — but every cache they grab is yours lost.
+func _spawn_day_scavengers() -> void:
+	if GameState.day_number <= 1:
+		return
+	for i in 2:
+		var psion: CharacterBody2D = PSION_SCENE.instantiate() as CharacterBody2D
+		psion.set("day_scavenger", true)
+		psion.global_position = Vector2(randf_range(350.0, 720.0), 136.0)
+		add_child(psion)
 
 func _process_day(delta: float) -> void:
 	_day_timer -= delta

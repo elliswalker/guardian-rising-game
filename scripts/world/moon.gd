@@ -112,8 +112,22 @@ func _start_lull() -> void:
 	_phase = Phase.LULL
 	_transition_sky(COLOR_SKY_LULL, 3.5)
 	_spawn_lull_caches()
+	_spawn_lull_wanderers()
 	_try_spawn_frame()
 	GameState.day_started.emit(GameState.day_number)
+
+# A few thralls shuffle in the dark during the lull — the Moon is never
+# truly empty. They turn feral when the warning shriek sounds.
+func _spawn_lull_wanderers() -> void:
+	if GameState.day_number <= 1:
+		return
+	for i in 2:
+		var thrall: CharacterBody2D = THRALL_SCENE.instantiate() as CharacterBody2D
+		thrall.set("_start_feral", false)
+		thrall.set("wander_left", 300.0)
+		thrall.set("wander_right", 760.0)
+		thrall.global_position = Vector2(randf_range(380.0, 700.0), 136.0)
+		add_child(thrall)
 
 func _process_lull(delta: float) -> void:
 	_lull_timer -= delta

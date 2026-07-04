@@ -30,5 +30,8 @@ func _on_toggle_ghost_pressed() -> void:
 
 func _on_kill_all_pressed() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if enemy.has_method("die"):
+		# take_damage(99) works on every enemy type; die() only existed on dreg
+		if enemy.has_method("take_damage"):
+			enemy.take_damage(99)
+		elif enemy.has_method("die"):
 			enemy.die()

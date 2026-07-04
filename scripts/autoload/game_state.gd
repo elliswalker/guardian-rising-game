@@ -137,7 +137,12 @@ func trigger_game_over() -> void:
 	await get_tree().create_timer(0.1).timeout
 	get_tree().change_scene_to_file("res://scenes/ui/game_over.tscn")
 
+var _victory_triggered: bool = false
+
 func trigger_victory() -> void:
+	if _victory_triggered:
+		return
+	_victory_triggered = true
 	victory.emit()
 	await get_tree().create_timer(0.1).timeout
 	get_tree().change_scene_to_file("res://scenes/ui/victory.tscn")
@@ -218,6 +223,7 @@ func new_run() -> void:
 	portal_active = true
 	run_time_seconds = 0.0
 	_game_over_triggered = false
+	_victory_triggered = false
 	_build_queue.clear()
 	_prompt_owner = null
 	_prompt_priority = 0

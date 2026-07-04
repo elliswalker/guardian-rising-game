@@ -42,7 +42,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _player_inside:
 		_show_prompt()  # re-assert each frame to recover from preemption
-		if Input.is_action_just_pressed("action"):
+		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
 			_try_create_job()
 
 func _on_body_entered(body: Node2D) -> void:

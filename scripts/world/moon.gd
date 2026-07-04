@@ -58,6 +58,7 @@ var _post_spawn_timer: float = 0.0
 var _spike_this_surge: bool = false
 var _quiet_surge_pending: bool = false
 var _quiet_this_surge: bool = false
+var _last_lull_seconds: int = -1
 var _layout_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -117,8 +118,11 @@ func _start_lull() -> void:
 func _process_lull(delta: float) -> void:
 	_lull_timer -= delta
 	var secs: int = maxi(0, ceili(_lull_timer))
-	GameState.dusk_timer_updated.emit(secs)
+	if secs != _last_lull_seconds:
+		_last_lull_seconds = secs
+		GameState.dusk_timer_updated.emit(secs)
 	if _lull_timer <= 0.0:
+		_last_lull_seconds = -1
 		_start_warning()
 
 # ── WARNING (the shriek before the flood) ─────────────────────────────────────

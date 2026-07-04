@@ -78,6 +78,12 @@ func _on_wave_changed(wave: int) -> void:
 	_wave_tween.tween_property(wave_label, "modulate:a", 0.0, 0.8)
 
 func _faction_for_wave(_wave: int) -> String:
+	# Faction is locked to the PLANET, never the wave
+	match GameState.current_planet:
+		"moon":
+			return "hive"
+		"mars":
+			return "cabal"
 	return "fallen"
 
 func _on_dusk_timer_updated(seconds: int) -> void:

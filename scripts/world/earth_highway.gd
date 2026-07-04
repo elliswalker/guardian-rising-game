@@ -215,8 +215,9 @@ func _night_pack_interval() -> float:
 	return maxf(0.8, 4.5 - float(GameState.day_number) * 0.3)
 
 func _process_night(delta: float) -> void:
-	# Early dawn: field cleared before all spawns finished
-	if _night_spawned > 0 and get_tree().get_nodes_in_group("enemies").is_empty():
+	# Early dawn: field cleared before all spawns finished. The portal
+	# Servitor is a permanent resident — don't let it hold the night open.
+	if _night_spawned > 0 and _non_boss_enemy_count() == 0:
 		_trigger_dawn()
 		return
 	if _night_spawned < _night_total:
@@ -230,6 +231,13 @@ func _process_night(delta: float) -> void:
 		_post_spawn_timer += delta
 		if _post_spawn_timer >= NIGHT_WAVE_TIMEOUT:
 			_trigger_dawn()
+
+func _non_boss_enemy_count() -> int:
+	var count: int = 0
+	for e: Node in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and not e.is_in_group("bosses"):
+			count += 1
+	return count
 
 # ── DAWN ────────────────────────────────────────────────────────────────────────
 

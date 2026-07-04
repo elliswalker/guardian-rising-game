@@ -98,6 +98,14 @@ func _commission() -> void:
 	GameState.hide_action_prompt(self)
 	GameState.queue_build_job(self)
 
+# Legacy garrison API — towers auto-fire (design 2026-07-03) but guardian.gd's
+# orphaned SEEKING_TOWER path still references these; keep them crash-safe.
+func garrison(_redjack: Node2D) -> void:
+	pass
+
+func release_garrison() -> void:
+	pass
+
 # Restore from a planet-state snapshot: instantly built at saved HP
 func restore(hp: int) -> void:
 	_built = true

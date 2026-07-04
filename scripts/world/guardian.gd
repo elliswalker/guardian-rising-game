@@ -1074,7 +1074,17 @@ func _do_assault(delta: float) -> void:
 		else:
 			velocity.x = sign(target.global_position.x - global_position.x) * CHASE_SPEED
 	else:
-		velocity.x = TRAVEL_SPEED  # march right toward portal
+		# march toward the nearest standing portal (dual-front aware)
+		var portal_dir: float = 1.0
+		var best_dist: float = INF
+		for p: Node in get_tree().get_nodes_in_group("portals"):
+			var pn: Node2D = p as Node2D
+			if pn and is_instance_valid(pn):
+				var d: float = absf(pn.global_position.x - global_position.x)
+				if d < best_dist:
+					best_dist = d
+					portal_dir = signf(pn.global_position.x - global_position.x)
+		velocity.x = portal_dir * TRAVEL_SPEED
 
 # ── Attack ────────────────────────────────────────────────────────────────────
 

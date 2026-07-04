@@ -334,9 +334,16 @@ func _spawn_world_objects() -> void:
 	wiz_l.position = Vector2(-830.0, 118.0)
 	add_child(wiz_l)
 
-	var flag: Node2D = FLAG_SCENE.instantiate() as Node2D
-	flag.position = Vector2(680.0, 148.0)
-	add_child(flag)
+	# one charge banner per front — each plants itself at that side's outermost wall
+	var flag_r: Node2D = FLAG_SCENE.instantiate() as Node2D
+	flag_r.set("side", 1.0)
+	flag_r.position = Vector2(220.0, 148.0)
+	add_child(flag_r)
+
+	var flag_l: Node2D = FLAG_SCENE.instantiate() as Node2D
+	flag_l.set("side", -1.0)
+	flag_l.position = Vector2(-220.0, 148.0)
+	add_child(flag_l)
 
 	# Ascendant Forge — metal unlock, gates Shield-tier walls (EP-06 tier 4)
 	var forge: Node2D = FOUNDRY_SCENE.instantiate() as Node2D

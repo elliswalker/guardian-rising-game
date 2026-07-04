@@ -402,8 +402,10 @@ func _spawn_world_objects() -> void:
 	servitor.position = Vector2(698.0, 130.0)
 	add_child(servitor)
 
+	# the charge banner plants itself at the outermost wall (flag self-positions)
 	var flag: Node2D = FLAG_SCENE.instantiate() as Node2D
-	flag.position = Vector2(620.0, 148.0)
+	flag.set("side", 1.0)
+	flag.position = Vector2(220.0, 148.0)
 	add_child(flag)
 
 	# Sundance waits in a firelit hollow past the tree line (EP-08)

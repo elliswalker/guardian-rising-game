@@ -1,5 +1,16 @@
 extends Area2D
 
+# Kingdom rule: the banner stands at YOUR frontier, not the enemy's door.
+# The flag tracks the outermost wall on its side and plants itself just
+# beyond it — build further out and the flag advances with you.
+
+const FLAG_STANDOFF := 26.0   # stands just outside the outermost wall
+const DEFAULT_X := 220.0      # no walls yet: the edge of the camp field
+const REPOSITION_POLL := 0.75
+
+# +1 = right front, -1 = left front (dual-front planets spawn one per side)
+@export var side: float = 1.0
+
 @onready var _pole:    ColorRect = $Pole
 @onready var _banner:  Sprite2D = $Banner
 @onready var _label:   Label     = $Label
@@ -8,6 +19,9 @@ var _player_nearby: bool = false
 var _activated: bool = false
 var _orig_banner: Color
 var _orig_label: String
+var _repos_timer: float = 0.0
+var _target_x: float = INF
+var _move: Tween = null
 
 func _ready() -> void:
 	add_to_group("attack_flags")
@@ -19,6 +33,32 @@ func _ready() -> void:
 	body_exited.connect(_on_body_exited)
 	GameState.portal_broken.connect(_on_portal_broken)
 	GameState.day_started.connect(_on_day_started)
+	_reposition(true)
+
+# Plant the flag just beyond the outermost wall on this flag's side
+func _reposition(instant: bool = false) -> void:
+	var target_x: float = DEFAULT_X * side
+	for wall: Node in get_tree().get_nodes_in_group("walls"):
+		var wn: Node2D = wall as Node2D
+		if not wn or not is_instance_valid(wn):
+			continue
+		if wn.global_position.x * side <= 0.0:
+			continue  # other front's walls
+		if side > 0.0:
+			target_x = maxf(target_x, wn.global_position.x + FLAG_STANDOFF)
+		else:
+			target_x = minf(target_x, wn.global_position.x - FLAG_STANDOFF)
+	if absf(target_x - _target_x) < 4.0:
+		return
+	_target_x = target_x
+	if _move:
+		_move.kill()
+		_move = null
+	if instant:
+		global_position.x = target_x
+		return
+	_move = create_tween()
+	_move.tween_property(self, "global_position:x", target_x, 0.9).set_ease(Tween.EASE_IN_OUT)
 
 # The charge is a one-day order — the flag resets at dawn until the planet falls
 func _on_day_started(_day: int) -> void:
@@ -30,7 +70,11 @@ func _on_day_started(_day: int) -> void:
 	if _label:
 		_label.text = _orig_label
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_repos_timer -= delta
+	if _repos_timer <= 0.0:
+		_repos_timer = REPOSITION_POLL
+		_reposition()
 	# no charge to send once the planet is quiet
 	if _player_nearby and not _activated and GameState.portal_active:
 		var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D

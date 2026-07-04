@@ -26,7 +26,7 @@ const COLORS: Dictionary = {
 	JobType.BUILDER:    Color(0.30, 0.55, 0.90, 1.0),
 }
 
-@onready var _marker: ColorRect = $Marker
+@onready var _marker: Sprite2D = $Marker
 @onready var _label: Label = $Label
 
 var _player_inside: bool = false
@@ -34,7 +34,7 @@ var _player_inside: bool = false
 func _ready() -> void:
 	add_to_group("job_posts")
 	collision_mask = 8
-	_marker.color = COLORS[job_type]
+	_marker.self_modulate = COLORS[job_type]
 	_label.text = LABELS[job_type].to_upper()
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)

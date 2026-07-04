@@ -1,7 +1,7 @@
 extends Area2D
 
 @onready var _pole:    ColorRect = $Pole
-@onready var _banner:  ColorRect = $Banner
+@onready var _banner:  Sprite2D = $Banner
 @onready var _label:   Label     = $Label
 
 var _player_nearby: bool = false
@@ -13,7 +13,7 @@ func _ready() -> void:
 	add_to_group("attack_flags")
 	collision_layer = 0
 	collision_mask = 8  # player
-	_orig_banner = _banner.color
+	_orig_banner = _banner.modulate
 	_orig_label = _label.text if _label else ""
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -26,7 +26,7 @@ func _on_day_started(_day: int) -> void:
 		return
 	_activated = false
 	GameState.is_attack_phase = false
-	_banner.color = _orig_banner
+	_banner.modulate = _orig_banner
 	if _label:
 		_label.text = _orig_label
 
@@ -57,7 +57,7 @@ func _activate() -> void:
 	GameState.hide_action_prompt(self)
 	GameState.is_attack_phase = true
 	GameState.attack_ordered.emit()
-	_banner.color = Color(0.80, 0.10, 0.10, 1.0)
+	_banner.modulate = Color(0.80, 0.10, 0.10, 1.0)
 	if _label:
 		_label.text = "CHARGE"
 
@@ -67,4 +67,4 @@ func _on_portal_broken(_faction: String) -> void:
 		return
 	if _label:
 		_label.text = "VICTORY"
-	_banner.color = Color(0.15, 0.70, 0.25, 1.0)
+	_banner.modulate = Color(0.15, 0.70, 0.25, 1.0)

@@ -14,7 +14,7 @@ const CHUNK := 50
 const COLOR_DEPOSIT  := Color(0.95, 0.80, 0.25, 1.0)
 const COLOR_WITHDRAW := Color(0.35, 0.75, 0.55, 1.0)
 
-@onready var _marker: ColorRect = $Marker
+@onready var _marker: Sprite2D = $Marker
 @onready var _label: Label = $Label
 
 var _player_inside: bool = false
@@ -23,7 +23,7 @@ var _is_day: bool = true
 func _ready() -> void:
 	add_to_group("vault_pads")
 	collision_mask = 8  # player layer
-	_marker.color = COLOR_DEPOSIT if mode == Mode.DEPOSIT else COLOR_WITHDRAW
+	_marker.self_modulate = COLOR_DEPOSIT if mode == Mode.DEPOSIT else COLOR_WITHDRAW
 	_label.text = "VAULT IN" if mode == Mode.DEPOSIT else "VAULT OUT"
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)

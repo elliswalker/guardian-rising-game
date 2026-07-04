@@ -17,7 +17,14 @@ const TIER_UNLOCKS: Dictionary = {
 }
 const MAX_TIER := 4
 
-@onready var _tower_sprite: ColorRect = $TowerSprite
+const TOWER_TEXTURES: Array[Texture2D] = [
+	preload("res://assets/sprites/structures/encampment_tower_t1.png"),
+	preload("res://assets/sprites/structures/encampment_tower_t2.png"),
+	preload("res://assets/sprites/structures/encampment_tower_t3.png"),
+	preload("res://assets/sprites/structures/encampment_tower_t4.png"),
+]
+
+@onready var _tower_sprite: Sprite2D = $TowerSprite
 @onready var _label: Label = $Label
 
 var _player_inside: bool = false
@@ -65,10 +72,12 @@ func _try_upgrade() -> void:
 
 func _update_visual() -> void:
 	var tier: int = GameState.camp_tier()
-	# tower grows and brightens with each tier
+	# the watch tower gains a level with each tier and brightens
 	if _tower_sprite:
-		_tower_sprite.offset_top = -47.0 - float(tier - 1) * 8.0
+		var tex: Texture2D = TOWER_TEXTURES[clampi(tier, 1, MAX_TIER) - 1]
+		_tower_sprite.texture = tex
+		_tower_sprite.offset = Vector2(-tex.get_width() * 0.5, -float(tex.get_height()))
 		var t: float = float(tier - 1) / 3.0
-		_tower_sprite.color = Color(0.2 + t * 0.15, 0.23 + t * 0.2, 0.28 + t * 0.3, 1.0)
+		_tower_sprite.modulate = Color(0.52 + t * 0.22, 0.55 + t * 0.24, 0.60 + t * 0.30, 1.0)
 	if _label:
 		_label.text = "ENCAMPMENT  T%d" % tier

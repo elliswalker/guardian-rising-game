@@ -69,7 +69,11 @@ func _die() -> void:
 	for portal: Node in get_tree().get_nodes_in_group("portals"):
 		if portal.has_method("break_portal"):
 			portal.call("break_portal")
-	# TODO: spawn lantern explosion visual
+	# the soul lantern collapses
+	var boom: Node2D = preload("res://scenes/world/ability_shockwave.tscn").instantiate() as Node2D
+	boom.global_position = global_position
+	get_parent().call_deferred("add_child", boom)
+	Sound.play("thunk", 2.0, 0.45)
 	var tween: Tween = create_tween()
 	tween.tween_property(_sprite, "modulate:a", 0.0, 2.0)
 	tween.chain().tween_callback(queue_free)

@@ -16,7 +16,7 @@ const PATROL_RIGHT_X   := 760.0
 const COLOR_HEALTHY := Color(0.72, 0.35, 0.12, 1.0)
 const COLOR_DAMAGED := Color(0.45, 0.20, 0.06, 1.0)
 
-@onready var _sprite:  ColorRect = $ColossusSprite
+@onready var _sprite:  Sprite2D = $ColossusSprite
 @onready var _flame:   ColorRect = $FlameSprite
 
 var _hp: int = HP_MAX
@@ -70,7 +70,7 @@ func take_damage(amount: int) -> void:
 	if _is_dying:
 		return
 	_hp = maxi(_hp - amount, 0)
-	_sprite.color = COLOR_HEALTHY.lerp(COLOR_DAMAGED, 1.0 - float(_hp) / float(HP_MAX))
+	_sprite.modulate = Color.WHITE.lerp(COLOR_DAMAGED, 1.0 - float(_hp) / float(HP_MAX))
 	if _hp <= 0:
 		_die()
 

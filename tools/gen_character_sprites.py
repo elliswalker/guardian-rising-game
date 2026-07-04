@@ -254,6 +254,14 @@ def gen_cabal():
     rect(im, 4, 10, 13, 11, CABAL_SUIT)  # pressure-suit midsection
     save(im, "enemies", "cabal", "legionary.png")
 
+    # colossus — the widest thing on any battlefield, fuel tank + flame arm
+    im = biped(28, 34, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True, crest=True)
+    rect(im, 0, 10, 2, 22, CABAL_SUIT)          # fuel tank on the back
+    rect(im, 0, 10, 2, 11, shade(CABAL_SUIT, 1.3))
+    rect(im, 24, 14, 27, 17, CABAL_DARK)        # flamethrower arm
+    px(im, 27, 15, (255, 120, 30, 255))         # pilot light
+    save(im, "enemies", "cabal", "colossus.png")
+
     im = biped(22, 32, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True, crest=True)
     save(im, "enemies", "cabal", "centurion.png")
 

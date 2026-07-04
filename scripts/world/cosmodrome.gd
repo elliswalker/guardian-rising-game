@@ -29,9 +29,9 @@ const COLOR_SKY_DUSK  := Color(0.52, 0.30, 0.16, 1)
 const COLOR_SKY_NIGHT := Color(0.07, 0.07, 0.15, 1)
 const COLOR_SKY_BLOOD := Color(0.45, 0.08, 0.10, 1)
 
-const DAY_DURATION_BASE := 90.0
-const DAY_DURATION_DEC  := 3.0
-const DAY_DURATION_MIN  := 60.0
+const DAY_DURATION_BASE := 120.0
+const DAY_DURATION_DEC  := 2.0
+const DAY_DURATION_MIN  := 90.0
 const DUSK_DURATION     := 12.0
 const MAX_WAVE_SIZE     := 16   # split across two fronts
 const DAWN_DURATION     := 5.5
@@ -66,6 +66,7 @@ var _post_spawn_timer: float = 0.0
 var _spike_this_night: bool = false
 var _quiet_night_pending: bool = false
 var _quiet_this_night: bool = false
+var _clear_countdown: float = -1.0
 var _next_spawn_side: float = 1.0
 # Seeded per run+planet so the layout is stable across visits (EP-15)
 var _layout_rng := RandomNumberGenerator.new()
@@ -181,6 +182,7 @@ func _start_night() -> void:
 		_night_total = int(float(_night_total) * SPIKE_MULTIPLIER)
 		_quiet_night_pending = true
 	_night_spawned = 0
+	_clear_countdown = -1.0
 	_spawn_timer = 1.5
 	_post_spawn_timer = 0.0
 	GameState.wave_number = day
@@ -193,8 +195,15 @@ func _night_pack_interval() -> float:
 func _process_night(delta: float) -> void:
 	# Portal Servitors are permanent residents — count only wave enemies
 	if _night_spawned > 0 and _non_boss_enemy_count() == 0:
-		_trigger_dawn()
+		# field is clear — the survivors catch their breath before dawn breaks
+		if _clear_countdown < 0.0:
+			_clear_countdown = 12.0
+		_clear_countdown -= delta
+		if _clear_countdown <= 0.0:
+			_clear_countdown = -1.0
+			_trigger_dawn()
 		return
+	_clear_countdown = -1.0
 	if _night_spawned < _night_total:
 		_spawn_timer -= delta
 		if _spawn_timer <= 0.0:
@@ -531,3 +540,15 @@ func _transition_sky(target: Color, duration: float) -> void:
 	tween.tween_property(_sky_rect, "color", tinted, duration).set_ease(Tween.EASE_IN_OUT)
 	# the hour lands on the whole world, not just the sky (Kingdom rule)
 	ParallaxLoader.tint(get_tree(), target, duration)
+
+# ── DEBUG (shared F1 panel) ───────────────────────────────────────────────────
+
+func debug_spawn_dreg() -> void:
+	var player: Node = get_tree().get_first_node_in_group("player")
+	var dreg: CharacterBody2D = DREG_SCENE.instantiate() as CharacterBody2D
+	_configure_side(dreg, 1.0)
+	dreg.global_position = player.global_position + Vector2(50.0, 0.0) if player else Vector2(100.0, 135.0)
+	add_child(dreg)
+
+func debug_force_dusk() -> void:
+	_day_timer = 0.0

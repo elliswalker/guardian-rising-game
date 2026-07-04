@@ -29,9 +29,9 @@ const COLOR_SKY_DUSK  := Color(0.45, 0.20, 0.12, 1)
 const COLOR_SKY_NIGHT := Color(0.12, 0.06, 0.07, 1)
 const COLOR_SKY_BLOOD := Color(0.45, 0.08, 0.10, 1)
 
-const DAY_DURATION_BASE := 90.0
-const DAY_DURATION_DEC  := 3.0
-const DAY_DURATION_MIN  := 60.0
+const DAY_DURATION_BASE := 120.0
+const DAY_DURATION_DEC  := 2.0
+const DAY_DURATION_MIN  := 90.0
 const DUSK_DURATION     := 12.0
 const MAX_WAVE_SIZE     := 16
 const DAWN_DURATION     := 5.5
@@ -67,6 +67,7 @@ var _post_spawn_timer: float = 0.0
 var _spike_this_night: bool = false
 var _quiet_night_pending: bool = false
 var _quiet_this_night: bool = false
+var _clear_countdown: float = -1.0
 var _layout_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -199,6 +200,7 @@ func _start_night() -> void:
 		_night_total = int(float(_night_total) * SPIKE_MULTIPLIER)
 		_quiet_night_pending = true
 	_night_spawned = 0
+	_clear_countdown = -1.0
 	_spawn_timer = 1.5
 	_post_spawn_timer = 0.0
 	GameState.wave_number = day
@@ -211,8 +213,15 @@ func _pod_interval() -> float:
 
 func _process_night(delta: float) -> void:
 	if _night_spawned > 0 and _non_boss_enemy_count() == 0:
-		_trigger_dawn()
+		# field is clear — the survivors catch their breath before dawn breaks
+		if _clear_countdown < 0.0:
+			_clear_countdown = 12.0
+		_clear_countdown -= delta
+		if _clear_countdown <= 0.0:
+			_clear_countdown = -1.0
+			_trigger_dawn()
 		return
+	_clear_countdown = -1.0
 	if _night_spawned < _night_total:
 		_spawn_timer -= delta
 		if _spawn_timer <= 0.0:
@@ -277,7 +286,8 @@ func _drop_pod(count: int) -> void:
 		_disgorge_pod(pod_x, count)
 	)
 	tween.tween_interval(2.0)
-	tween.tween_property(pod, "modulate:a", 0.3, 4.0)
+	tween.tween_property(pod, "modulate:a", 0.0, 4.0)
+	tween.tween_callback(pod.queue_free)  # no ghost pods littering the field
 
 func _pick_pod_x() -> float:
 	# pods aim inside the field but respect the outermost wall — the siege
@@ -500,3 +510,14 @@ func _transition_sky(target: Color, duration: float) -> void:
 	tween.tween_property(_sky_rect, "color", tinted, duration).set_ease(Tween.EASE_IN_OUT)
 	# the hour lands on the whole world, not just the sky (Kingdom rule)
 	ParallaxLoader.tint(get_tree(), target, duration)
+
+# ── DEBUG (shared F1 panel) ───────────────────────────────────────────────────
+
+func debug_spawn_dreg() -> void:
+	var player: Node = get_tree().get_first_node_in_group("player")
+	var leg: CharacterBody2D = LEGIONARY_SCENE.instantiate() as CharacterBody2D
+	leg.global_position = player.global_position + Vector2(50.0, 0.0) if player else Vector2(100.0, 135.0)
+	add_child(leg)
+
+func debug_force_dusk() -> void:
+	_day_timer = 0.0

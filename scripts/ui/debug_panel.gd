@@ -5,7 +5,9 @@ extends CanvasLayer
 var _ghost_invincible: bool = false
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("debug_toggle"):
+	# bound directly — the "debug_toggle" action never existed in the input map
+	var key: InputEventKey = event as InputEventKey
+	if key and key.pressed and not key.echo and key.physical_keycode == KEY_F1:
 		visible = not visible
 
 func _on_spawn_dreg_pressed() -> void:

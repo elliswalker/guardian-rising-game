@@ -29,7 +29,7 @@ const COLOR_SKY_WARNING := Color(0.14, 0.07, 0.16, 1)
 const COLOR_SKY_SURGE   := Color(0.05, 0.04, 0.10, 1)
 const COLOR_SKY_BLOOD   := Color(0.40, 0.06, 0.10, 1)
 
-const LULL_DURATION    := 75.0  # fixed — the Moon's pressure is the surges, not the clock
+const LULL_DURATION    := 110.0  # fixed — the Moon's pressure is the surges, not the clock
 const WARNING_DURATION := 8.0
 const MAX_WAVE_SIZE    := 18
 const RESPITE_DURATION := 5.0
@@ -58,6 +58,7 @@ var _post_spawn_timer: float = 0.0
 var _spike_this_surge: bool = false
 var _quiet_surge_pending: bool = false
 var _quiet_this_surge: bool = false
+var _clear_countdown: float = -1.0
 var _last_lull_seconds: int = -1
 var _layout_rng := RandomNumberGenerator.new()
 
@@ -182,6 +183,7 @@ func _start_surge() -> void:
 		_surge_total = int(float(_surge_total) * SPIKE_MULTIPLIER)
 		_quiet_surge_pending = true
 	_surge_spawned = 0
+	_clear_countdown = -1.0
 	_spawn_timer = 1.0
 	_post_spawn_timer = 0.0
 	GameState.wave_number = day
@@ -194,8 +196,15 @@ func _surge_interval() -> float:
 
 func _process_surge(delta: float) -> void:
 	if _surge_spawned > 0 and get_tree().get_nodes_in_group("enemies").size() <= _boss_count():
-		_trigger_respite()
+		# the flood is spent — a long dark breath before the respite
+		if _clear_countdown < 0.0:
+			_clear_countdown = 12.0
+		_clear_countdown -= delta
+		if _clear_countdown <= 0.0:
+			_clear_countdown = -1.0
+			_trigger_respite()
 		return
+	_clear_countdown = -1.0
 	if _surge_spawned < _surge_total:
 		_spawn_timer -= delta
 		if _spawn_timer <= 0.0:
@@ -457,3 +466,14 @@ func _transition_sky(target: Color, duration: float) -> void:
 	tween.tween_property(_sky_rect, "color", tinted, duration).set_ease(Tween.EASE_IN_OUT)
 	# the hour lands on the whole world, not just the sky (Kingdom rule)
 	ParallaxLoader.tint(get_tree(), target, duration)
+
+# ── DEBUG (shared F1 panel) ───────────────────────────────────────────────────
+
+func debug_spawn_dreg() -> void:
+	var player: Node = get_tree().get_first_node_in_group("player")
+	var thrall: CharacterBody2D = THRALL_SCENE.instantiate() as CharacterBody2D
+	thrall.global_position = player.global_position + Vector2(50.0, 0.0) if player else Vector2(100.0, 135.0)
+	add_child(thrall)
+
+func debug_force_dusk() -> void:
+	_lull_timer = 0.0

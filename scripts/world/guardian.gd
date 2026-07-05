@@ -675,7 +675,7 @@ func _redirect_to_job_with_type(job_type: int) -> void:
 			return
 
 func _try_claim_build_job() -> void:
-	var job: Node = GameState.claim_next_build_job()
+	var job: Node = GameState.claim_build_job(global_position.x)
 	if job and is_instance_valid(job):
 		_build_site_target = job as Node2D
 		state = State.SEEKING_SITE
@@ -849,7 +849,8 @@ func _check_for_repair_targets() -> void:
 	_try_claim_build_job()
 	if state != State.BUILDER_IDLE:
 		return  # claimed one
-	# Priority 1: free repair — seek nearest broken wall (no range limit; builder walks to it)
+	# Priority 1: free repair — INWARD-OUT (#47): fix the wall nearest the
+	# camp first, and never walk into a contested site (the flee ping-pong)
 	var nearest_broken: Node2D = null
 	var nearest_broken_dist: float = INF
 	for wall: Node in get_tree().get_nodes_in_group("walls"):
@@ -861,7 +862,9 @@ func _check_for_repair_targets() -> void:
 			continue
 		var hp_int: int = hp_val as int
 		if hp_int > 0 and (hp_int % 2) == 1:  # broken (odd HP)
-			var d: float = global_position.distance_to(wn.global_position)
+			if GameState.site_contested(wn):
+				continue
+			var d: float = absf(wn.global_position.x - GameState.encampment_x)
 			if d < nearest_broken_dist:
 				nearest_broken_dist = d
 				nearest_broken = wn
@@ -871,7 +874,8 @@ func _check_for_repair_targets() -> void:
 		_build_timer = 0.0
 		state = State.REPAIRING
 		return
-	# Priority 2: commissioned wall upgrades — the player already paid
+	# Priority 2: commissioned wall upgrades — the player already paid.
+	# Same rules: inward-out, skip contested (#47).
 	var nearest_up: Node2D = null
 	var nearest_up_dist: float = INF
 	for wall: Node in get_tree().get_nodes_in_group("walls"):
@@ -882,7 +886,9 @@ func _check_for_repair_targets() -> void:
 			continue
 		if not wn.call("can_upgrade"):
 			continue
-		var d: float = global_position.distance_to(wn.global_position)
+		if GameState.site_contested(wn):
+			continue
+		var d: float = absf(wn.global_position.x - GameState.encampment_x)
 		if d < nearest_up_dist:
 			nearest_up_dist = d
 			nearest_up = wn

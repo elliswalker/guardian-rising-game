@@ -282,13 +282,44 @@ func queue_build_job(site: Node, priority: bool = false) -> void:
 			_build_queue.push_back(site)
 	build_job_queued.emit()
 
-func claim_next_build_job() -> Node:
-	while _build_queue.size() > 0:
-		var site: Node = _build_queue[0]
-		_build_queue.remove_at(0)
-		if is_instance_valid(site):
-			return site
-	return null
+# Enemies parked on a site make it unbuildable for now — a builder
+# ping-ponging against the flee radius helps nobody (#47)
+const BUILD_DANGER_RANGE := 90.0
+
+func site_contested(site: Node2D) -> bool:
+	for e: Node in get_tree().get_nodes_in_group("enemies"):
+		var en: Node2D = e as Node2D
+		if en and is_instance_valid(en) \
+				and absf(en.global_position.x - site.global_position.x) < BUILD_DANGER_RANGE:
+			return true
+	return false
+
+# Builders build INWARD-OUT (#47), not first-queued-first-served: prefer
+# the claimer's own side of camp, then the job nearest the CAMP (the safe
+# core grows outward), then nearest the builder. Contested sites are
+# skipped — they stay queued and get retried on the next idle scan.
+func claim_build_job(builder_x: float) -> Node:
+	var builder_side: float = signf(builder_x - encampment_x)
+	var best: Node = null
+	var best_key: Array = []
+	for site: Node in _build_queue:
+		var sn: Node2D = site as Node2D
+		if not sn or not is_instance_valid(sn):
+			continue
+		if site_contested(sn):
+			continue
+		var same_side: int = 0 if signf(sn.global_position.x - encampment_x) == builder_side else 1
+		var key: Array = [
+			same_side,
+			absf(sn.global_position.x - encampment_x),
+			absf(sn.global_position.x - builder_x),
+		]
+		if best == null or key < best_key:
+			best = site
+			best_key = key
+	if best:
+		_build_queue.erase(best)
+	return best
 
 # The NEAREST interactable to the player wins the prompt; priority only
 # breaks near-ties (objects genuinely stacked, e.g. a tree over a build site).

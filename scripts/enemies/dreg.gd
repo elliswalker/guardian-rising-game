@@ -44,7 +44,24 @@ const COLOR_LOOT     := Color(1.0, 0.85, 0.25, 1.0)
 const COLOR_HIT      := Color(1.0, 0.15, 0.0, 1)
 const COLOR_TETHERED := Color(0.70, 0.45, 1.0, 1.0)
 
-@onready var _sprite: CanvasItem = $DregSprite
+@onready var _sprite: Sprite2D = $DregSprite
+
+# 2-frame walk cycle (#46)
+const TEX_STAND := preload("res://assets/sprites/enemies/fallen/dreg.png")
+const TEX_WALK  := preload("res://assets/sprites/enemies/fallen/dreg_walk.png")
+const WALK_FRAME_TIME := 0.15
+var _walk_t: float = 0.0
+
+func _animate_walk(delta: float) -> void:
+	if not _sprite:
+		return
+	if absf(velocity.x) < 2.0:
+		_walk_t = 0.0
+		_sprite.texture = TEX_STAND
+		return
+	_sprite.flip_h = velocity.x > 0.0
+	_walk_t += delta
+	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
 
 # Set to false before add_child to spawn as a daytime wanderer instead of a night attacker
 var _start_feral: bool = true
@@ -110,6 +127,7 @@ func apply_tether(duration: float) -> void:
 	_sprite.modulate =COLOR_TETHERED
 
 func _physics_process(delta: float) -> void:
+	_animate_walk(delta)
 	if _tether_timer > 0.0:
 		_tether_timer -= delta
 		if _tether_timer <= 0.0:

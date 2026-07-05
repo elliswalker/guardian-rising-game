@@ -64,8 +64,9 @@ def save(im, *parts):
 
 # ── archetype: biped ──────────────────────────────────────────────────────────
 def biped(w, h, armor, dark, glow, *, hunch=0, arms=2, head_w=None, eye_y=None,
-          cloak=False, crest=False, shield=False, broad=False):
-    """Parameterized humanoid silhouette. Origin: feet at bottom row."""
+          cloak=False, crest=False, shield=False, broad=False, stride=False):
+    """Parameterized humanoid silhouette. Origin: feet at bottom row.
+    stride=True poses the legs mid-step for 2-frame walk cycles (#46)."""
     im = canvas(w, h)
     cx = w // 2
     head_w = head_w or max(4, w // 3)
@@ -77,8 +78,15 @@ def biped(w, h, armor, dark, glow, *, hunch=0, arms=2, head_w=None, eye_y=None,
 
     # legs
     lw = max(1, torso_w // 4)
-    rect(im, cx - torso_w // 2 + 1, leg_top, cx - torso_w // 2 + lw, h - 1, dark)
-    rect(im, cx + torso_w // 2 - lw, leg_top, cx + torso_w // 2 - 1, h - 1, dark)
+    if stride:
+        # lead leg planted a pixel out front, trailing leg lifted toe-down
+        rect(im, cx - torso_w // 2, leg_top, cx - torso_w // 2 + lw - 1, h - 2, dark)
+        rect(im, cx - torso_w // 2 - 1, h - 1, cx - torso_w // 2 + lw - 1, h - 1, dark)
+        rect(im, cx + torso_w // 2 - lw + 1, leg_top, cx + torso_w // 2, h - 3, dark)
+        rect(im, cx + torso_w // 2 - lw + 2, h - 2, cx + torso_w // 2 + 1, h - 2, dark)
+    else:
+        rect(im, cx - torso_w // 2 + 1, leg_top, cx - torso_w // 2 + lw, h - 1, dark)
+        rect(im, cx + torso_w // 2 - lw, leg_top, cx + torso_w // 2 - 1, h - 1, dark)
     # torso
     rect(im, cx - torso_w // 2, torso_top, cx + torso_w // 2 - 1, torso_bot, armor)
     rect(im, cx - torso_w // 2, torso_top, cx - torso_w // 2, torso_bot, shade(armor, 1.25))
@@ -134,9 +142,47 @@ def floater(w, h, body, dark, glow, *, eye_r=1, fins=False):
 
 # ── player roster ─────────────────────────────────────────────────────────────
 def gen_player():
-    # hunter — the current player sprite: cloaked scout
-    im = biped(18, 26, GUARD_CLOTH, shade(GUARD_CLOTH, 0.6), GUARD_GLOW, cloak=True)
-    rect(im, 4, 5, 13, 7, GUARD_CAPE)  # cloak shoulders
+    # hunter — hand-drawn detail pass (#43): hooded scout, layered cloak,
+    # chest rig, knife belt. Silhouette unchanged from the biped original.
+    im = canvas(18, 26)
+    C1 = GUARD_CLOTH
+    C2 = shade(GUARD_CLOTH, 0.62)          # cloth shade
+    C3 = shade(GUARD_CLOTH, 1.3)           # cloth lit
+    CAPE = GUARD_CAPE
+    CAPE_D = shade(GUARD_CAPE, 0.65)
+    # hood — peaked, overhanging the visor
+    rect(im, 6, 0, 11, 5, C2)
+    rect(im, 6, 0, 11, 0, C3)
+    rect(im, 5, 2, 5, 5, C2)               # hood lip
+    rect(im, 7, 3, 10, 4, (24, 30, 38, 255))  # face shadow
+    px(im, 8, 3, GUARD_GLOW)               # visor glint
+    px(im, 9, 3, GUARD_GLOW)
+    # cloak — draped off the left shoulder, ragged hem, two-tone folds
+    rect(im, 3, 6, 7, 19, CAPE)
+    rect(im, 3, 6, 3, 19, shade(GUARD_CAPE, 1.2))
+    rect(im, 5, 8, 5, 18, CAPE_D)          # fold line
+    for hx, hy in [(3, 20), (5, 21), (7, 20)]:
+        px(im, hx, hy, CAPE_D)             # ragged hem
+    # torso — chest rig over cloth
+    rect(im, 7, 6, 13, 14, C1)
+    rect(im, 13, 6, 13, 14, C2)
+    rect(im, 8, 7, 12, 7, C3)              # collar light
+    rect(im, 9, 8, 9, 13, (40, 48, 58, 255))   # rig strap
+    rect(im, 11, 10, 12, 11, (40, 48, 58, 255))  # chest pouch
+    px(im, 11, 10, C3)
+    # belt + knife
+    rect(im, 7, 15, 13, 15, (30, 36, 44, 255))
+    px(im, 12, 16, (180, 188, 200, 255))   # knife hilt
+    # legs — wrapped boots
+    rect(im, 8, 16, 9, 24, C2)
+    rect(im, 11, 16, 12, 24, C2)
+    rect(im, 8, 21, 9, 21, (30, 36, 44, 255))   # boot wrap
+    rect(im, 11, 21, 12, 21, (30, 36, 44, 255))
+    rect(im, 8, 25, 9, 25, (26, 30, 36, 255))
+    rect(im, 11, 25, 12, 25, (26, 30, 36, 255))
+    # right arm
+    rect(im, 14, 8, 15, 14, C2)
+    px(im, 14, 8, C3)
     save(im, "player", "hunter.png")
 
     # speaker — white mask, long robes
@@ -153,23 +199,85 @@ def gen_player():
     im = biped(24, 28, (90, 70, 120, 255), (50, 40, 70, 255), (200, 160, 255, 255), cloak=True)
     save(im, "player", "warlock.png")
 
-    # ghost — diamond core + shell corners
+    # ghost — detail pass (#43): angular shell points floating off a dark
+    # core seam, single cyan eye. Reads as THE Ghost at 16px.
     im = canvas(16, 16)
-    for i in range(4):
-        rect(im, 7 - i, 7 - (3 - i), 8 + i, 8 - (3 - i), (225, 230, 240, 255))
-        rect(im, 7 - i, 7 + (3 - i), 8 + i, 8 + (3 - i), (225, 230, 240, 255))
-    rect(im, 6, 6, 9, 9, (200, 210, 225, 255))
-    px(im, 7, 7, GUARD_GLOW)
+    SH  = (228, 232, 240, 255)   # shell lit
+    SH2 = (196, 202, 214, 255)   # shell mid
+    SH3 = (150, 158, 172, 255)   # shell shadow
+    # core cube behind the gap
+    rect(im, 6, 6, 9, 9, (52, 60, 72, 255))
+    px(im, 7, 7, GUARD_GLOW)     # the eye
     px(im, 8, 7, GUARD_GLOW)
-    for dx, dy in [(-6, -6), (6, -6), (-6, 6), (6, 6)]:
-        rect(im, 7 + dx, 7 + dy, 8 + dx, 8 + dy, (180, 188, 200, 255))
+    px(im, 7, 8, (90, 160, 200, 255))
+    px(im, 8, 8, (90, 160, 200, 255))
+    # top shell point
+    rect(im, 7, 1, 8, 1, SH)
+    rect(im, 6, 2, 9, 3, SH)
+    rect(im, 6, 4, 9, 4, SH2)
+    # bottom shell point
+    rect(im, 6, 11, 9, 11, SH2)
+    rect(im, 6, 12, 9, 13, SH3)
+    rect(im, 7, 14, 8, 14, SH3)
+    # side shell points (slightly separated — the shell floats)
+    for sx, lit in ((1, True), (12, False)):
+        c_main = SH if lit else SH2
+        rect(im, sx + 1, 7, sx + 3, 8, c_main)
+        rect(im, sx, 6, sx + 2, 6, SH2 if lit else SH3)
+        rect(im, sx, 9, sx + 2, 9, SH3)
+    # corner ticks — the diamond shell corners
+    for dx, dy, c_t in [(3, 3, SH), (11, 3, SH2), (3, 11, SH3), (11, 11, SH3)]:
+        px(im, dx, dy, c_t)
+        px(im, dx + 1, dy + 1, c_t)
     save(im, "player", "ghost.png")
 
 
 # ── fallen ────────────────────────────────────────────────────────────────────
 def gen_fallen():
-    im = biped(12, 20, FALLEN_ARMOR, FALLEN_DARK, FALLEN_GLOW, hunch=2, arms=4)
+    # dreg — detail pass (#43): hunched scavver, ether mask, docked lower
+    # arms (the dreg shame), backward-bent shins. Same 12x20 canvas.
+    im = canvas(12, 20)
+    A1 = FALLEN_ARMOR
+    A2 = shade(FALLEN_ARMOR, 0.68)
+    A3 = shade(FALLEN_ARMOR, 1.28)
+    CL = FALLEN_CLOTH
+    # head — low, thrust forward, ether mask
+    rect(im, 3, 2, 8, 5, FALLEN_DARK)
+    rect(im, 3, 2, 8, 2, shade(FALLEN_DARK, 1.3))
+    rect(im, 2, 4, 3, 5, FALLEN_DARK)          # snout/mask
+    px(im, 4, 3, FALLEN_GLOW)                  # two ether eyes
+    px(im, 6, 3, FALLEN_GLOW)
+    px(im, 2, 5, (200, 220, 235, 200))         # ether vent wisp
+    # hunched torso — patched armor over rags
+    rect(im, 3, 6, 9, 12, A1)
+    rect(im, 3, 6, 3, 12, A3)
+    rect(im, 9, 6, 9, 12, A2)
+    rect(im, 4, 7, 8, 7, A3)                   # shoulder plate light
+    rect(im, 5, 9, 7, 10, CL)                  # rag wrap
+    px(im, 6, 11, A2)                          # belt scrap
+    # upper arms — long, knuckling forward
+    rect(im, 1, 7, 2, 12, A2)
+    rect(im, 10, 7, 11, 12, A2)
+    px(im, 1, 12, FALLEN_DARK)                 # claw
+    px(im, 11, 12, FALLEN_DARK)
+    # docked lower-arm nubs
+    px(im, 2, 13, FALLEN_DARK)
+    px(im, 9, 13, FALLEN_DARK)
+    base = im
+    # standing pose — backward-bent legs
+    im = base.copy()
+    rect(im, 3, 13, 4, 16, A2)
+    rect(im, 7, 13, 8, 16, A2)
+    rect(im, 2, 17, 3, 19, FALLEN_DARK)        # shin kicks back
+    rect(im, 8, 17, 9, 19, FALLEN_DARK)
     save(im, "enemies", "fallen", "dreg.png")
+    # stride pose (#46) — scuttling step
+    im = base.copy()
+    rect(im, 2, 13, 3, 16, A2)                 # lead thigh forward
+    rect(im, 1, 17, 2, 19, FALLEN_DARK)        # lead shin planted ahead
+    rect(im, 8, 13, 9, 15, A2)                 # trailing thigh lifted
+    rect(im, 9, 16, 10, 18, FALLEN_DARK)       # trailing shin toe-down
+    save(im, "enemies", "fallen", "dreg_walk.png")
 
     im = biped(18, 26, FALLEN_CLOTH, FALLEN_DARK, FALLEN_GLOW, arms=4, cloak=True)
     rect(im, 5, 4, 12, 5, FALLEN_ARMOR)  # armored collar
@@ -197,6 +305,8 @@ def gen_fallen():
 def gen_hive():
     im = biped(12, 16, HIVE_BONE, HIVE_DARK, HIVE_GLOW, hunch=2)
     save(im, "enemies", "hive", "thrall.png")
+    im = biped(12, 16, HIVE_BONE, HIVE_DARK, HIVE_GLOW, hunch=2, stride=True)
+    save(im, "enemies", "hive", "thrall_walk.png")
 
     im = biped(12, 16, HIVE_FLESH, HIVE_DARK, HIVE_GLOW, hunch=2)
     rect(im, 4, 8, 7, 11, HIVE_GLOW)  # glowing volatile belly
@@ -255,6 +365,9 @@ def gen_cabal():
     im = biped(18, 28, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True)
     rect(im, 4, 10, 13, 11, CABAL_SUIT)  # pressure-suit midsection
     save(im, "enemies", "cabal", "legionary.png")
+    im = biped(18, 28, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True, stride=True)
+    rect(im, 4, 10, 13, 11, CABAL_SUIT)
+    save(im, "enemies", "cabal", "legionary_walk.png")
 
     # colossus — the widest thing on any battlefield, fuel tank + flame arm
     im = biped(28, 34, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True, crest=True)

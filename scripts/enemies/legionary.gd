@@ -19,7 +19,24 @@ const COLOR_DEFAULT := Color.WHITE
 const COLOR_HIT     := Color(1.0, 0.6, 0.3, 1.0)
 const COLOR_DAMAGED := Color(1.0, 0.5, 0.5, 1.0)
 
-@onready var _sprite: CanvasItem = $LegionarySprite
+@onready var _sprite: Sprite2D = $LegionarySprite
+
+# 2-frame walk cycle (#46) — heavy, slow tread
+const TEX_STAND := preload("res://assets/sprites/enemies/cabal/legionary.png")
+const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/legionary_walk.png")
+const WALK_FRAME_TIME := 0.26
+var _walk_t: float = 0.0
+
+func _animate_walk(delta: float) -> void:
+	if not _sprite:
+		return
+	if absf(velocity.x) < 2.0:
+		_walk_t = 0.0
+		_sprite.texture = TEX_STAND
+		return
+	_sprite.flip_h = velocity.x > 0.0
+	_walk_t += delta
+	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
 
 var _hp: int = HP_MAX
 var _is_dying: bool = false
@@ -41,6 +58,7 @@ func retreat() -> void:
 		_retreating = true
 
 func _physics_process(delta: float) -> void:
+	_animate_walk(delta)
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 	if _retreating:

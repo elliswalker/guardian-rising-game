@@ -88,31 +88,68 @@ def gen_tower():
     save(im, "structures", "tower.png")
 
 
-# ── frame.png 12×26 — boxy worker robot (near-white; job color = modulate) ──
-def gen_frame():
+# ── frame.png 12×26 — exo worker (near-white; job color = modulate) ─────────
+# Detail pass (#43) + 2-frame walk cycle (#46): frame.png (stand) and
+# frame_walk.png (stride) — guardian.gd swaps them while moving.
+def _frame_body():
+    """Everything but the legs — shared by both walk poses."""
     im = canvas(12, 26)
-    # head
-    rect(im, 3, 0, 8, 5, W2)
-    rect(im, 3, 0, 8, 0, W1)
-    rect(im, 4, 2, 7, 3, W4)  # visor
-    # neck
-    rect(im, 5, 6, 6, 7, W3)
-    # torso
+    # antenna
+    px(im, 8, 0, W3)
+    px(im, 8, 1, W1)
+    # head — visor slit + jaw vent
+    rect(im, 3, 1, 8, 6, W2)
+    rect(im, 3, 1, 8, 1, W1)
+    rect(im, 3, 1, 3, 6, W1)
+    rect(im, 8, 1, 8, 6, W3)
+    rect(im, 4, 3, 7, 3, W4)      # visor slit
+    px(im, 4, 5, W3)              # jaw vent ticks
+    px(im, 6, 5, W3)
+    # neck servo
+    rect(im, 5, 7, 6, 7, W4)
+    # torso — plated, core light, shoulder bolts
     rect(im, 2, 8, 9, 16, W2)
     rect(im, 2, 8, 2, 16, W1)
     rect(im, 9, 8, 9, 16, W3)
-    rect(im, 5, 10, 6, 14, W3)  # chest seam
-    # arms
-    rect(im, 0, 9, 1, 15, W3)
-    rect(im, 10, 9, 11, 15, W3)
-    # hips
+    rect(im, 3, 8, 8, 8, W1)      # clavicle plate
+    px(im, 2, 9, W4)              # shoulder bolts
+    px(im, 9, 9, W4)
+    rect(im, 5, 10, 6, 11, W4)    # chest core recess
+    px(im, 5, 10, W1)             # core glint
+    rect(im, 3, 13, 8, 13, W3)    # abdominal seam
+    rect(im, 5, 14, 6, 16, W3)    # spine channel
+    # arms — jointed at the elbow
+    rect(im, 0, 9, 1, 12, W3)
+    rect(im, 0, 13, 1, 15, W4)    # forearm darker
+    rect(im, 10, 9, 11, 12, W3)
+    rect(im, 10, 13, 11, 15, W4)
+    px(im, 0, 12, W2)             # elbow caps
+    px(im, 11, 12, W2)
+    # hip block
     rect(im, 3, 17, 8, 18, W3)
-    # legs
-    rect(im, 3, 19, 4, 25, W2)
-    rect(im, 7, 19, 8, 25, W2)
-    rect(im, 3, 25, 4, 25, W4)
-    rect(im, 7, 25, 8, 25, W4)
+    px(im, 3, 17, W2)
+    px(im, 8, 17, W4)
+    return im
+
+
+def gen_frame():
+    # standing pose
+    im = _frame_body()
+    for lx in (3, 7):
+        rect(im, lx, 19, lx + 1, 24, W2)
+        rect(im, lx, 22, lx, 22, W3)     # knee servo
+        rect(im, lx, 25, lx + 1, 25, W4)  # foot
     save(im, "structures", "frame.png")
+
+    # stride pose — left leg forward, right leg trailing
+    im = _frame_body()
+    rect(im, 2, 19, 3, 23, W2)           # forward leg
+    px(im, 2, 21, W3)
+    rect(im, 1, 24, 2, 25, W4)           # forward foot, planted ahead
+    rect(im, 7, 19, 8, 22, W2)           # trailing leg, lifted
+    px(im, 8, 21, W3)
+    rect(im, 8, 23, 9, 24, W4)           # trailing foot, toe down
+    save(im, "structures", "frame_walk.png")
 
 
 # ── locker.png 14×34 — stasis cabinet (baked dark teal) ──────────────────────

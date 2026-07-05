@@ -284,21 +284,8 @@ def car_husk(im, x, ground, c, hl):
 
 
 def gen_layer4():
-    # EARTH — dead trees, car husks, guardrail, puddle glints
-    im = canvas()
-    ridge(im, 172, 3, [(4, 1.0), (10, 0.4)], (42, 47, 60, 255), rough=1.0)
-    C, HL = (42, 47, 60, 255), (30, 34, 44, 255)
-    for x in [24, 168, 262]:
-        car_husk(im, x, 170, C, HL)
-    for x in [72, 130, 218, 300]:
-        dead_tree(im, x, 171, random.randint(22, 34), C)
-    for x0 in [95, 235]:                                   # guardrail run
-        rect(im, x0, 165, x0 + 30, 166, C)
-        for gx in range(x0, x0 + 30, 6):
-            rect(im, gx, 166, gx, 170, C)
-    for x0, w in [(52, 14), (200, 10), (285, 8)]:          # puddle glints
-        rect(im, x0, 175, x0 + w, 175, (96, 112, 138, 160))
-    save(im, "earth", "layer_4.png")
+    # EARTH is plate-built now (tools/build_earth_backgrounds.py, #42) —
+    # never write generated layers over the real art.
 
     # COSMODROME — container stacks, cable spools, sagging power poles
     im = canvas()
@@ -431,7 +418,8 @@ def gen_foregrounds():
 
 
 if __name__ == "__main__":
-    gen_earth()
+    # gen_earth() retired — Earth runs on the real plates (#42);
+    # see tools/build_earth_backgrounds.py. Other planets follow via #44.
     gen_cosmodrome()
     gen_moon()
     gen_mars()

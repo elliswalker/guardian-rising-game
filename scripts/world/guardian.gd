@@ -74,6 +74,23 @@ const COLOR_LOCKER   := Color(0.06, 0.22, 0.30, 0.95)
 const COLOR_INDICATOR_AMBER := Color(1.0, 0.65, 0.05, 1.0)
 
 @onready var _sprite: Sprite2D = $FrameSprite
+
+# 2-frame walk cycle (#46) — texture swap while moving, tint-safe
+const TEX_STAND := preload("res://assets/sprites/structures/frame.png")
+const TEX_WALK  := preload("res://assets/sprites/structures/frame_walk.png")
+const WALK_FRAME_TIME := 0.18
+var _walk_t: float = 0.0
+
+func _animate_walk(delta: float) -> void:
+	if not _sprite:
+		return
+	if absf(velocity.x) < 2.0:
+		_walk_t = 0.0
+		_sprite.texture = TEX_STAND
+		return
+	_sprite.flip_h = velocity.x > 0.0  # stride art leads left
+	_walk_t += delta
+	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
 @onready var _locker_sprite: Sprite2D = $LockerSprite
 @onready var _indicator_light: ColorRect = $IndicatorLight
 
@@ -123,6 +140,7 @@ func _ready() -> void:
 	GameState.attack_ordered.connect(_on_attack_ordered)
 
 func _physics_process(delta: float) -> void:
+	_animate_walk(delta)
 	# Flee check — runs for every active state except dormant/returning/already fleeing/garrisoned
 	match state:
 		State.DORMANT, State.RETURNING_TO_SPAWN, State.FLEEING, \

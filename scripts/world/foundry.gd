@@ -32,7 +32,7 @@ func _process(_delta: float) -> void:
 	var pdist: float = global_position.distance_to(player.global_position) if player else 999999.0
 	GameState.show_action_prompt(self,
 		"[ SPACE ]  Restore %s  —  %d ◈   (%s)" % [display_name, restore_cost, unlock_label], 9, pdist)
-	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 		_restore()
 
 func _on_body_entered(body: Node2D) -> void:

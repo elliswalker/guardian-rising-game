@@ -41,11 +41,11 @@ func _process(delta: float) -> void:
 		var blocking: Node2D = _get_blocking_tree()
 		if blocking:
 			GameState.show_action_prompt(self, "[ SPACE ]  Mark Tree  —  Clear Path", 12, pdist)
-			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 				blocking.call("commission")
 		else:
 			GameState.show_action_prompt(self, "[ SPACE ]  Build Wall  —  %d ◈" % BUILD_COST, 12, pdist)
-			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 				_action_job()
 
 func _get_blocking_tree() -> Node2D:

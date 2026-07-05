@@ -45,7 +45,7 @@ func _check_player_proximity() -> void:
 	elif _player_nearby:
 		GameState.hide_action_prompt(self)
 	_player_nearby = nearby
-	if nearby and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+	if nearby and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 		_on_interact()
 
 func _show_prompt(pdist: float = 999999.0) -> void:

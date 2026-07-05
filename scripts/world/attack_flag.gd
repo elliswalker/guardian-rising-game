@@ -84,7 +84,7 @@ func _process(delta: float) -> void:
 			GameState.show_action_prompt(self, "The Charge — Requires Encampment T4", 8, pdist)
 			return
 		GameState.show_action_prompt(self, "[ SPACE ]  Send the Charge", 8, pdist)
-		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 			_activate()
 
 func _on_body_entered(body: Node) -> void:

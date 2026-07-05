@@ -18,12 +18,9 @@ const CALLIN_SCENES: Dictionary = {
 signal ability_cooldown_updated(fraction: float)  # 1.0 = ready, 0.0 = just used
 
 const COLOR_NORMAL_BODY := Color(0.9, 0.95, 1.0, 0.9)
-const COLOR_NORMAL_GLOW := Color(0.4, 0.8, 1.0, 0.25)
 const COLOR_CAPTURED_BODY := Color(1.0, 0.35, 0.1, 0.9)
-const COLOR_CAPTURED_GLOW := Color(1.0, 0.2, 0.0, 0.3)
 
 @onready var _ghost_sprite: CanvasItem = $GhostSprite
-@onready var _glow_sprite: ColorRect = $GlowSprite
 @onready var _pulse_ring: ColorRect = $PulseRing
 
 var player: CharacterBody2D
@@ -114,18 +111,14 @@ func capture(enemy: Node2D) -> void:
 	carrier = enemy
 	GameState.on_ghost_captured()
 	var tween: Tween = create_tween()
-	tween.set_parallel(true)
 	tween.tween_property(_ghost_sprite, "modulate", COLOR_CAPTURED_BODY, 0.3)
-	tween.tween_property(_glow_sprite, "color", COLOR_CAPTURED_GLOW, 0.3)
 
 func release() -> void:
 	is_captured = false
 	carrier = null
 	GameState.on_ghost_released()
 	var tween: Tween = create_tween()
-	tween.set_parallel(true)
 	tween.tween_property(_ghost_sprite, "modulate", COLOR_NORMAL_BODY, 0.4)
-	tween.tween_property(_glow_sprite, "color", COLOR_NORMAL_GLOW, 0.4)
 
 func set_invincible(value: bool) -> void:
 	invincible = value

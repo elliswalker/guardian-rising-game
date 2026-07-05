@@ -57,7 +57,7 @@ func _process(_delta: float) -> void:
 		GameState.show_action_prompt(self,
 			"[ SPACE ]  Reinforce Wall  —  %d ◈   (→ %s)" % [UPGRADE_COST, TIER_NAMES[current_tier() + 1]],
 			8, pdist)
-		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 			_commission_upgrade()
 	else:
 		GameState.show_action_prompt(self,

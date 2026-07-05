@@ -34,7 +34,7 @@ func _process(_delta: float) -> void:
 	if not _player_inside:
 		return
 	_show_prompt()  # re-assert each frame to recover from preemption
-	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 		_do_action()
 
 func _on_body_entered(body: Node2D) -> void:

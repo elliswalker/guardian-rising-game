@@ -49,7 +49,7 @@ func _process(delta: float) -> void:
 		# free switch — one Ghost at a time
 		GameState.show_action_prompt(self,
 			"[ SPACE ]  Attune %s   (%s)" % [ghost_name, super_label], 11, pdist)
-		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 			GameState.equipped_super = super_name
 			GameState.super_equipped.emit(super_name)
 			GameState.hide_action_prompt(self)
@@ -58,7 +58,7 @@ func _process(delta: float) -> void:
 		GameState.show_action_prompt(self,
 			"[ SPACE ]  Bond with %s  —  %d ✦ + %d ◈   (%s)" %
 			[ghost_name, shard_cost, glimmer_cost, super_label], 11, pdist)
-		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 			_claim()
 	else:
 		GameState.show_action_prompt(self,

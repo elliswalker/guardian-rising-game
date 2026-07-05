@@ -46,7 +46,7 @@ func _process(_delta: float) -> void:
 	GameState.show_action_prompt(self,
 		"[ SPACE ]  Beacon %s — %d ◈   (holds %d nights)" %
 		[TIER_NAMES[tier + 1], TIER_COSTS[tier], TIER_NIGHTS[tier + 1]], 6, pdist)
-	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 		_try_upgrade()
 
 func _on_body_entered(body: Node2D) -> void:

@@ -218,7 +218,7 @@ func _check_recruit_prompt() -> void:
 	elif _prompt_showing:
 		_prompt_showing = false
 		GameState.hide_action_prompt(self)
-	if closest and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+	if closest and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 		_recruit()
 
 func _is_closest_dormant_frame() -> bool:
@@ -350,8 +350,17 @@ func _do_return_to_spawn() -> void:
 		velocity.x = sign(_spawn_pos.x - global_position.x) * TRAVEL_SPEED
 
 # ── Stasis locker ─────────────────────────────────────────────────────────────
+# Art direction (Ellis, 2026-07-04): lockers are permanent camp landmarks.
+# The locker ALWAYS stands; only the light on top says whether a frame is
+# home. Recruit a frame and it leaves an unlit husk behind; when a frame
+# returns dormant, the husk is reclaimed and the light comes back on.
+
+var _locker_husk: Sprite2D = null
 
 func _restore_locker() -> void:
+	if _locker_husk and is_instance_valid(_locker_husk):
+		_locker_husk.queue_free()
+	_locker_husk = null
 	if _locker_sprite:
 		_locker_sprite.visible = true
 		_locker_sprite.modulate.a = 1.0
@@ -361,15 +370,19 @@ func _restore_locker() -> void:
 		_indicator_light.color = COLOR_INDICATOR_AMBER
 
 func _open_locker() -> void:
+	if _locker_sprite and not _locker_husk:
+		# the empty pod stays behind, light off
+		_locker_husk = Sprite2D.new()
+		_locker_husk.texture = _locker_sprite.texture
+		_locker_husk.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_locker_husk.global_position = Vector2(_spawn_pos.x, _spawn_pos.y - 15.0)
+		_locker_husk.modulate = Color(0.75, 0.78, 0.82, 1.0)  # powered-down tint
+		_locker_husk.z_index = -1
+		get_parent().call_deferred("add_child", _locker_husk)
 	if _locker_sprite:
-		var tween: Tween = create_tween()
-		tween.set_parallel(true)
-		tween.tween_property(_locker_sprite, "modulate:a", 0.0, 0.35)
-		tween.tween_property(_indicator_light, "modulate:a", 0.0, 0.2)
-		tween.chain().tween_callback(func() -> void:
-			if _locker_sprite: _locker_sprite.visible = false
-			if _indicator_light: _indicator_light.visible = false
-		)
+		_locker_sprite.visible = false
+	if _indicator_light:
+		_indicator_light.visible = false
 
 # ── Flee ──────────────────────────────────────────────────────────────────────
 

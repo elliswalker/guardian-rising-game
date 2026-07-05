@@ -330,6 +330,19 @@ func hide_action_prompt(owner: Object) -> void:
 		_prompt_dist = 999999.0
 		action_prompt_hide.emit()
 
+# One action per frame (#45): when the acting owner hides its prompt, a
+# neighboring interactable can claim ownership later the SAME frame while
+# is_action_just_pressed is still true — and both pay. Every prompt-gated
+# action site must also win this latch.
+var _action_consumed_frame: int = -1
+
+func try_consume_action() -> bool:
+	var frame: int = Engine.get_process_frames()
+	if _action_consumed_frame == frame:
+		return false
+	_action_consumed_frame = frame
+	return true
+
 func is_prompt_owner(caller: Object) -> bool:
 	return _prompt_owner != null and is_instance_valid(_prompt_owner) and _prompt_owner == caller
 

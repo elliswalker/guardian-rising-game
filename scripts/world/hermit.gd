@@ -52,7 +52,7 @@ func _process(_delta: float) -> void:
 		if tower:
 			GameState.show_action_prompt(self,
 				"[ SPACE ]  Settle %s  —  %s" % [NAMES[kind], CONVERSIONS[kind]], 10, 5.0)
-			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+			if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 				_settle(tower)
 		else:
 			GameState.hide_action_prompt(self)
@@ -64,7 +64,7 @@ func _process(_delta: float) -> void:
 	var near: bool = pdist < INTERACT_RANGE
 	if near:
 		GameState.show_action_prompt(self, "[ SPACE ]  Carry %s" % NAMES[kind], 10, pdist)
-		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+		if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 			_carried = true
 	else:
 		GameState.hide_action_prompt(self)

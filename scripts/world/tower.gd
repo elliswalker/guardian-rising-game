@@ -73,7 +73,7 @@ func _process(delta: float) -> void:
 				GameState.show_action_prompt(self, "Tower — Requires Encampment T2", 12, pdist)
 			else:
 				GameState.show_action_prompt(self, "[ SPACE ]  Build Tower  —  %d ◈" % BUILD_COST, 12, pdist)
-				if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action"):
+				if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
 					_commission()
 		return
 	_shoot_timer -= delta

@@ -236,7 +236,8 @@ func _check_recruit_prompt() -> void:
 	elif _prompt_showing:
 		_prompt_showing = false
 		GameState.hide_action_prompt(self)
-	if closest and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
+	if closest and GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") \
+			and GameState.try_consume_action():
 		_recruit()
 
 func _is_closest_dormant_frame() -> bool:

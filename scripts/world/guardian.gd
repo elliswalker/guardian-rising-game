@@ -394,7 +394,8 @@ func _open_locker() -> void:
 		_locker_husk = Sprite2D.new()
 		_locker_husk.texture = _locker_sprite.texture
 		_locker_husk.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_locker_husk.global_position = Vector2(_spawn_pos.x, _spawn_pos.y - 15.0)
+		_locker_husk.global_position = Vector2(_spawn_pos.x, _spawn_pos.y - 17.0)
+		_locker_husk.scale = _locker_sprite.scale
 		_locker_husk.modulate = Color(0.75, 0.78, 0.82, 1.0)  # powered-down tint
 		_locker_husk.z_index = -1
 		get_parent().call_deferred("add_child", _locker_husk)

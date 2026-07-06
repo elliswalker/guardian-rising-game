@@ -279,11 +279,53 @@ def gen_fallen():
     rect(im, 9, 16, 10, 18, FALLEN_DARK)       # trailing shin toe-down
     save(im, "enemies", "fallen", "dreg_walk.png")
 
-    im = biped(18, 26, FALLEN_CLOTH, FALLEN_DARK, FALLEN_GLOW, arms=4, cloak=True)
-    rect(im, 5, 4, 12, 5, FALLEN_ARMOR)  # armored collar
+    # vandal — detail pass (#43): four ether eyes, spiked helm, wire rifle
+    # slung across the back, cloak. Base body + two leg poses.
+    im = canvas(18, 26)
+    V1 = FALLEN_CLOTH
+    V2 = shade(FALLEN_CLOTH, 0.65)
+    V3 = shade(FALLEN_CLOTH, 1.3)
+    # helm — swept back with a spike
+    rect(im, 6, 1, 11, 5, FALLEN_DARK)
+    rect(im, 6, 1, 11, 1, shade(FALLEN_DARK, 1.35))
+    rect(im, 12, 0, 13, 1, FALLEN_DARK)         # helm spike
+    for ex, ey in [(7, 3), (9, 3), (7, 4), (9, 4)]:  # four ether eyes
+        px(im, ex, ey, FALLEN_GLOW)
+    # wire rifle across the back — a thin lit diagonal
+    for i in range(12):
+        px(im, 3 + i, 14 - i, (150, 170, 190, 255))
+    px(im, 3, 14, (90, 110, 130, 255))          # stock
+    px(im, 14, 3, (200, 230, 255, 255))         # muzzle glint
+    # cloak off the right shoulder, ragged
+    rect(im, 11, 6, 15, 18, V2)
+    rect(im, 15, 6, 15, 18, shade(FALLEN_CLOTH, 0.5))
+    for hx, hy in [(11, 19), (13, 20), (15, 19)]:
+        px(im, hx, hy, shade(FALLEN_CLOTH, 0.5))
+    # torso — armored collar + strapping
+    rect(im, 5, 6, 12, 15, V1)
+    rect(im, 5, 6, 5, 15, V3)
+    rect(im, 5, 6, 12, 7, FALLEN_ARMOR)         # armored collar
+    rect(im, 5, 6, 12, 6, shade(FALLEN_ARMOR, 1.25))
+    rect(im, 8, 8, 8, 14, V2)                   # strap
+    # four arms — upper pair braced, lower pair loose
+    rect(im, 3, 8, 4, 12, V2)
+    rect(im, 13, 8, 14, 12, V2)
+    rect(im, 4, 13, 4, 16, shade(FALLEN_ARMOR, 0.85))
+    rect(im, 13, 13, 13, 16, shade(FALLEN_ARMOR, 0.85))
+    vandal_base = im
+    # standing legs
+    im = vandal_base.copy()
+    rect(im, 6, 16, 7, 25, V2)
+    rect(im, 10, 16, 11, 25, V2)
+    px(im, 6, 25, FALLEN_DARK)
+    px(im, 11, 25, FALLEN_DARK)
     save(im, "enemies", "fallen", "vandal.png")
-    im = biped(18, 26, FALLEN_CLOTH, FALLEN_DARK, FALLEN_GLOW, arms=4, cloak=True, stride=True)
-    rect(im, 5, 4, 12, 5, FALLEN_ARMOR)
+    # stride legs (#46)
+    im = vandal_base.copy()
+    rect(im, 5, 16, 6, 23, V2)
+    rect(im, 4, 24, 5, 25, FALLEN_DARK)
+    rect(im, 11, 16, 12, 22, V2)
+    rect(im, 12, 23, 13, 24, FALLEN_DARK)
     save(im, "enemies", "fallen", "vandal_walk.png")
 
     im = biped(22, 34, FALLEN_ARMOR, FALLEN_DARK, FALLEN_GLOW, arms=4, cloak=True, crest=True, broad=True)
@@ -306,9 +348,48 @@ def gen_fallen():
 
 # ── hive ──────────────────────────────────────────────────────────────────────
 def gen_hive():
-    im = biped(12, 16, HIVE_BONE, HIVE_DARK, HIVE_GLOW, hunch=2)
+    # thrall — detail pass (#43): jagged bone crown, three soulfire eyes,
+    # long claws reaching ahead of the lunge. Base body + two leg poses.
+    im = canvas(12, 16)
+    B1 = HIVE_BONE
+    B2 = shade(HIVE_BONE, 0.68)
+    B3 = shade(HIVE_BONE, 1.22)
+    # head thrust forward with a jagged crown
+    rect(im, 2, 2, 7, 5, B1)
+    rect(im, 2, 2, 7, 2, B3)
+    px(im, 2, 1, B2)                            # crown spikes
+    px(im, 4, 0, B2)
+    px(im, 6, 1, B2)
+    px(im, 3, 3, HIVE_GLOW)                     # three eyes
+    px(im, 5, 3, HIVE_GLOW)
+    px(im, 4, 4, HIVE_GLOW)
+    rect(im, 2, 5, 6, 5, HIVE_DARK)             # jaw shadow
+    # hunched spine + ribs
+    rect(im, 3, 6, 9, 10, B2)
+    rect(im, 3, 6, 9, 6, B1)
+    px(im, 5, 8, HIVE_DARK)                     # rib notches
+    px(im, 7, 8, HIVE_DARK)
+    px(im, 9, 7, B3)                            # spine ridge
+    # claw arms reaching forward
+    rect(im, 0, 6, 1, 9, B2)
+    px(im, 0, 10, HIVE_DARK)                    # claw tips
+    px(im, 1, 10, HIVE_DARK)
+    rect(im, 1, 5, 2, 7, B2)
+    px(im, 0, 8, HIVE_DARK)
+    thrall_base = im
+    # standing legs — digitigrade crouch
+    im = thrall_base.copy()
+    rect(im, 4, 11, 5, 13, B2)
+    rect(im, 7, 11, 8, 13, B2)
+    rect(im, 3, 14, 4, 15, HIVE_DARK)
+    rect(im, 8, 14, 9, 15, HIVE_DARK)
     save(im, "enemies", "hive", "thrall.png")
-    im = biped(12, 16, HIVE_BONE, HIVE_DARK, HIVE_GLOW, hunch=2, stride=True)
+    # stride legs (#46) — full lunge
+    im = thrall_base.copy()
+    rect(im, 2, 11, 3, 13, B2)
+    rect(im, 1, 14, 2, 15, HIVE_DARK)
+    rect(im, 8, 11, 9, 12, B2)
+    rect(im, 10, 13, 11, 14, HIVE_DARK)
     save(im, "enemies", "hive", "thrall_walk.png")
 
     im = biped(12, 16, HIVE_FLESH, HIVE_DARK, HIVE_GLOW, hunch=2)
@@ -367,11 +448,48 @@ def gen_vex():
 
 # ── cabal ─────────────────────────────────────────────────────────────────────
 def gen_cabal():
-    im = biped(18, 28, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True)
-    rect(im, 4, 10, 13, 11, CABAL_SUIT)  # pressure-suit midsection
+    # legionary — detail pass (#43): flat-top helm with a wide amber visor,
+    # slab pauldrons, layered chest plates over the pressure suit, slug
+    # rifle held low. Base body + two leg poses.
+    im = canvas(18, 28)
+    L1 = CABAL_ARMOR
+    L2 = shade(CABAL_ARMOR, 0.68)
+    L3 = shade(CABAL_ARMOR, 1.25)
+    # helm — broad and flat
+    rect(im, 5, 1, 12, 5, L1)
+    rect(im, 5, 1, 12, 1, L3)
+    rect(im, 6, 3, 11, 3, CABAL_GLOW)           # wide visor slit
+    rect(im, 5, 5, 12, 5, L2)                   # jaw guard
+    # slab pauldrons
+    rect(im, 1, 6, 4, 10, L1)
+    rect(im, 1, 6, 4, 6, L3)
+    rect(im, 13, 6, 16, 10, L1)
+    rect(im, 13, 6, 16, 6, L3)
+    # chest — layered plates
+    rect(im, 4, 6, 13, 12, L1)
+    rect(im, 4, 6, 4, 12, L3)
+    rect(im, 5, 9, 12, 9, L2)                   # plate seam
+    rect(im, 4, 13, 13, 15, CABAL_SUIT)         # pressure-suit midsection
+    rect(im, 4, 13, 13, 13, shade(CABAL_SUIT, 1.2))
+    rect(im, 4, 16, 13, 18, L1)                 # hip girdle
+    rect(im, 5, 17, 12, 17, L2)
+    # slug rifle held low across the hip
+    rect(im, 12, 14, 17, 15, (46, 40, 44, 255))
+    rect(im, 12, 13, 13, 13, (46, 40, 44, 255))
+    px(im, 17, 14, (90, 80, 84, 255))           # muzzle
+    legionary_base = im
+    # standing legs — thick boots
+    im = legionary_base.copy()
+    for lx in (5, 10):
+        rect(im, lx, 19, lx + 2, 25, L2)
+        rect(im, lx, 26, lx + 2, 27, CABAL_DARK)
     save(im, "enemies", "cabal", "legionary.png")
-    im = biped(18, 28, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True, stride=True)
-    rect(im, 4, 10, 13, 11, CABAL_SUIT)
+    # stride legs (#46) — heavy tread
+    im = legionary_base.copy()
+    rect(im, 3, 19, 5, 24, L2)
+    rect(im, 2, 25, 4, 27, CABAL_DARK)
+    rect(im, 10, 19, 12, 23, L2)
+    rect(im, 12, 24, 14, 26, CABAL_DARK)
     save(im, "enemies", "cabal", "legionary_walk.png")
 
     # colossus — the widest thing on any battlefield, fuel tank + flame arm

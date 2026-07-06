@@ -18,7 +18,7 @@ const COLOR_DAMAGED := Color(1.0, 0.5, 0.5, 1.0)
 
 # 2-frame walk cycle (#46)
 const TEX_STAND := preload("res://assets/sprites/enemies/cabal/phalanx_right.png")
-const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/phalanx_right.png")
+const TEX_WALK  := TEX_STAND  # same texture until the animation sheets (#49 phase F)
 const WALK_FRAME_TIME := 0.28
 var _walk_t: float = 0.0
 

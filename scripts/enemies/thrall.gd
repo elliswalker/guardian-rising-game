@@ -23,7 +23,7 @@ const COLOR_HIT     := Color(0.5, 1.0, 0.6, 1.0)
 
 # 2-frame walk cycle (#46) — thralls scuttle fast, so the cycle runs fast
 const TEX_STAND := preload("res://assets/sprites/enemies/hive/thrall_right.png")
-const TEX_WALK  := preload("res://assets/sprites/enemies/hive/thrall_right.png")
+const TEX_WALK  := TEX_STAND  # same texture until the animation sheets (#49 phase F)
 const WALK_FRAME_TIME := 0.11
 var _walk_t: float = 0.0
 

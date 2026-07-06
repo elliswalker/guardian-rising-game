@@ -28,7 +28,7 @@ const COLOR_LOOT    := Color(1.0, 0.85, 0.25, 1.0)
 
 # 2-frame walk cycle (#46)
 const TEX_STAND := preload("res://assets/sprites/enemies/cabal/psion_right.png")
-const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/psion_right.png")
+const TEX_WALK  := TEX_STAND  # same texture until the animation sheets (#49 phase F)
 const WALK_FRAME_TIME := 0.13
 var _walk_t: float = 0.0
 

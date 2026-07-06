@@ -77,7 +77,7 @@ const COLOR_INDICATOR_AMBER := Color(1.0, 0.65, 0.05, 1.0)
 
 # 2-frame walk cycle (#46) — texture swap while moving, tint-safe
 const TEX_STAND := preload("res://assets/sprites/structures/frame_right.png")
-const TEX_WALK  := preload("res://assets/sprites/structures/frame_right.png")
+const TEX_WALK  := TEX_STAND  # same texture until the animation sheets (#49 phase F)
 const WALK_FRAME_TIME := 0.18
 var _walk_t: float = 0.0
 

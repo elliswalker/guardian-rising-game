@@ -14,7 +14,7 @@ extends Area2D
 @export var glimmer_cost: int = 100
 @export var ember_color: Color = Color(1.0, 0.55, 0.15)
 
-@onready var _hollow: ColorRect = $Hollow
+@onready var _hollow: Sprite2D = $Hollow  # Pro pedestal art (#49)
 @onready var _ghost_body: ColorRect = $GhostBody
 @onready var _glow: ColorRect = $Glow
 

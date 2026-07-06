@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/portal.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/structures/portal_arch.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/structures/pro_portal.png" id="2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/structures/portal_energy.png" id="3"]
 
 [node name="Portal" type="Node2D"]
@@ -14,7 +14,8 @@ texture = ExtResource("3")
 
 [node name="Outer" type="Sprite2D" parent="."]
 centered = false
-offset = Vector2(-22, -66)
+scale = Vector2(0.6168, 0.6168)
+offset = Vector2(-59, -107)
 texture = ExtResource("2")
 
 [node name="Base" type="ColorRect" parent="."]

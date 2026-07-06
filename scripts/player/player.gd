@@ -58,13 +58,16 @@ func apply_blight(duration: float) -> void:
 	tween.tween_interval(duration)
 	tween.tween_callback(func() -> void:
 		if guardian_sprite and _blight_timer <= 0.1:
-			guardian_sprite.modulate = Color.WHITE)
+			guardian_sprite.modulate = GameState.palette_color())
 
 var _ghost: Node2D = null
 var _hum: AudioStreamPlayer = null
 
 func _ready() -> void:
 	add_to_group("player")
+	# Guardian palette swap (#48) — chosen at NEW RUN on the main menu
+	if guardian_sprite:
+		guardian_sprite.modulate = GameState.palette_color()
 	# Sparrow hum — the hoofbeat: speed-reactive engine tone while riding
 	_hum = AudioStreamPlayer.new()
 	_hum.stream = preload("res://assets/audio/sparrow_hum.wav")
@@ -204,7 +207,7 @@ func _flash_hit() -> void:
 		return
 	var tween: Tween = create_tween()
 	tween.tween_property(guardian_sprite, "modulate", Color(1.0, 0.3, 0.2, 1.0), 0.05)
-	tween.tween_property(guardian_sprite, "modulate", Color.WHITE, 0.3)
+	tween.tween_property(guardian_sprite, "modulate", GameState.palette_color(), 0.3)
 
 func _on_ghost_captured() -> void:
 	has_ghost = false

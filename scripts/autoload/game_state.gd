@@ -26,6 +26,23 @@ signal victory
 # D1's cap, per Ellis (OQ-03). With armor live the risk tension comes from
 # the 10% scatter-on-hit, not the ceiling — the cap is just the bag size.
 const GLIMMER_CAP := 25000
+
+# Guardian palette swap (#48) — chosen on NEW RUN, applied as a sprite
+# tint so every existing texture and flash effect keeps working.
+const PALETTES: Dictionary = {
+	"vanguard": Color(1.00, 1.00, 1.00),  # the standard-issue steel blue
+	"crimson":  Color(1.00, 0.72, 0.70),  # New Monarchy red
+	"verdant":  Color(0.74, 1.00, 0.80),  # gambit drifter green
+	"gold":     Color(1.00, 0.90, 0.62),  # trials gilt
+	"violet":   Color(0.84, 0.76, 1.00),  # void-touched
+	"ash":      Color(0.80, 0.82, 0.86),  # dead orbit grey
+}
+const PALETTE_ORDER: Array[String] = ["vanguard", "crimson", "verdant", "gold", "violet", "ash"]
+
+var player_palette: String = "vanguard"
+
+func palette_color() -> Color:
+	return PALETTES.get(player_palette, Color.WHITE)
 const SAVE_PATH := "user://guardian_rising_save.json"
 
 # Set by each level controller in _ready — Earth camp sits left, Cosmodrome center
@@ -151,6 +168,7 @@ func save_game() -> void:
 		"mote_reduction": mote_reduction,
 		"encampment_tiers": encampment_tiers,
 		"beacon_tiers": beacon_tiers,
+		"player_palette": player_palette,
 		"current_planet": current_planet,
 		"ships_built": ships_built,
 		"stone_unlocked": stone_unlocked,
@@ -197,6 +215,7 @@ func load_game() -> bool:
 	mote_reduction = float(d.get("mote_reduction", 0.0))
 	encampment_tiers = d.get("encampment_tiers", {})
 	beacon_tiers = d.get("beacon_tiers", {})
+	player_palette = String(d.get("player_palette", "vanguard"))
 	current_planet = String(d.get("current_planet", "earth"))
 	ships_built = d.get("ships_built", {})
 	stone_unlocked = bool(d.get("stone_unlocked", false))

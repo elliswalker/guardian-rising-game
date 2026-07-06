@@ -60,6 +60,8 @@ func _setup_music() -> void:
 			ws.loop_end = ws.data.size() / 2  # 16-bit mono: 2 bytes per frame
 	_music_a = AudioStreamPlayer.new()
 	_music_b = AudioStreamPlayer.new()
+	_music_a.bus = "Music"
+	_music_b.bus = "Music"
 	add_child(_music_a)
 	add_child(_music_b)
 	# The signal contract covers every planet — Moon's lull/surge phases
@@ -107,6 +109,7 @@ func play(cue: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
 	p.stream = STREAMS[cue]
 	p.volume_db = volume_db
 	p.pitch_scale = pitch
+	p.bus = "SFX"
 	add_child(p)
 	p.finished.connect(p.queue_free)
 	p.play()

@@ -16,14 +16,17 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Guardian Rising"
 config/description="A Kingdom Series-inspired 2D defense game set in the Destiny universe."
-run/main_scene="res://scenes/world/opening.tscn"
+config/version="0.0.1"
+run/main_scene="res://scenes/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
 DesignTokens="*res://scripts/autoload/design_tokens.gd"
 GameState="*res://scripts/autoload/game_state.gd"
+Settings="*res://scripts/autoload/settings.gd"
 Sound="*res://scripts/autoload/sound.gd"
+PauseMenu="*res://scripts/ui/pause_menu.gd"
 
 [display]
 

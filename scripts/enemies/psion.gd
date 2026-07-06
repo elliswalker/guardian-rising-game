@@ -27,8 +27,8 @@ const COLOR_LOOT    := Color(1.0, 0.85, 0.25, 1.0)
 @onready var _sprite: Sprite2D = $PsionSprite
 
 # 2-frame walk cycle (#46)
-const TEX_STAND := preload("res://assets/sprites/enemies/cabal/psion.png")
-const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/psion_walk.png")
+const TEX_STAND := preload("res://assets/sprites/enemies/cabal/psion_right.png")
+const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/psion_right.png")
 const WALK_FRAME_TIME := 0.13
 var _walk_t: float = 0.0
 
@@ -39,7 +39,7 @@ func _animate_walk(delta: float) -> void:
 		_walk_t = 0.0
 		_sprite.texture = TEX_STAND
 		return
-	_sprite.flip_h = velocity.x > 0.0
+	_sprite.flip_h = velocity.x < 0.0  # Pro art faces right
 	_walk_t += delta
 	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
 

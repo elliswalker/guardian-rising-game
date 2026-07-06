@@ -17,8 +17,8 @@ const COLOR_DAMAGED := Color(1.0, 0.5, 0.5, 1.0)
 @onready var _sprite: Sprite2D = $PhalanxSprite
 
 # 2-frame walk cycle (#46)
-const TEX_STAND := preload("res://assets/sprites/enemies/cabal/phalanx.png")
-const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/phalanx_walk.png")
+const TEX_STAND := preload("res://assets/sprites/enemies/cabal/phalanx_right.png")
+const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/phalanx_right.png")
 const WALK_FRAME_TIME := 0.28
 var _walk_t: float = 0.0
 
@@ -29,7 +29,7 @@ func _animate_walk(delta: float) -> void:
 		_walk_t = 0.0
 		_sprite.texture = TEX_STAND
 		return
-	_sprite.flip_h = velocity.x > 0.0
+	_sprite.flip_h = velocity.x < 0.0  # Pro art faces right
 	_walk_t += delta
 	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
 

@@ -46,9 +46,10 @@ const COLOR_TETHERED := Color(0.70, 0.45, 1.0, 1.0)
 
 @onready var _sprite: Sprite2D = $DregSprite
 
-# 2-frame walk cycle (#46)
-const TEX_STAND := preload("res://assets/sprites/enemies/fallen/dreg.png")
-const TEX_WALK  := preload("res://assets/sprites/enemies/fallen/dreg_walk.png")
+# PRO art (#49): faces RIGHT, static until the animation sheets land
+# (phase F wires sprite_loader.gd). Both frames point at the Pro texture.
+const TEX_STAND := preload("res://assets/sprites/enemies/fallen/dreg_right.png")
+const TEX_WALK  := preload("res://assets/sprites/enemies/fallen/dreg_right.png")
 const WALK_FRAME_TIME := 0.15
 var _walk_t: float = 0.0
 
@@ -59,7 +60,7 @@ func _animate_walk(delta: float) -> void:
 		_walk_t = 0.0
 		_sprite.texture = TEX_STAND
 		return
-	_sprite.flip_h = velocity.x > 0.0
+	_sprite.flip_h = velocity.x < 0.0  # Pro art faces right
 	_walk_t += delta
 	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
 

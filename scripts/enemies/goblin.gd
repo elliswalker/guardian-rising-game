@@ -32,7 +32,24 @@ const COLOR_DEFAULT  := Color.WHITE
 const COLOR_HIT      := Color(1.0,  0.90, 0.30, 1.0)
 const COLOR_TETHERED := Color(0.55, 0.55, 0.70, 1.0)
 
-@onready var _sprite: CanvasItem = $GoblinSprite
+@onready var _sprite: Sprite2D = $GoblinSprite
+
+# 2-frame walk cycle (#46)
+const TEX_STAND := preload("res://assets/sprites/enemies/vex/goblin.png")
+const TEX_WALK  := preload("res://assets/sprites/enemies/vex/goblin_walk.png")
+const WALK_FRAME_TIME := 0.16
+var _walk_t: float = 0.0
+
+func _animate_walk(delta: float) -> void:
+	if not _sprite:
+		return
+	if absf(velocity.x) < 2.0:
+		_walk_t = 0.0
+		_sprite.texture = TEX_STAND
+		return
+	_sprite.flip_h = velocity.x > 0.0
+	_walk_t += delta
+	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
 
 var _goblin_state: GoblinState = GoblinState.FERAL
 var _start_feral: bool = true   # set false before add_child for day wanderers
@@ -76,6 +93,7 @@ func apply_tether(duration: float) -> void:
 	_tether_timer = maxf(_tether_timer, duration)
 
 func _physics_process(delta: float) -> void:
+	_animate_walk(delta)
 	if _tether_timer > 0.0:
 		_tether_timer -= delta
 		velocity.x = 0.0

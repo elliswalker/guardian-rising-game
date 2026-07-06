@@ -282,6 +282,9 @@ def gen_fallen():
     im = biped(18, 26, FALLEN_CLOTH, FALLEN_DARK, FALLEN_GLOW, arms=4, cloak=True)
     rect(im, 5, 4, 12, 5, FALLEN_ARMOR)  # armored collar
     save(im, "enemies", "fallen", "vandal.png")
+    im = biped(18, 26, FALLEN_CLOTH, FALLEN_DARK, FALLEN_GLOW, arms=4, cloak=True, stride=True)
+    rect(im, 5, 4, 12, 5, FALLEN_ARMOR)
+    save(im, "enemies", "fallen", "vandal_walk.png")
 
     im = biped(22, 34, FALLEN_ARMOR, FALLEN_DARK, FALLEN_GLOW, arms=4, cloak=True, crest=True, broad=True)
     save(im, "enemies", "fallen", "captain.png")
@@ -340,8 +343,10 @@ def gen_vex():
         return im
 
     save(vex_biped(14, 22), "enemies", "vex", "goblin.png")
+    save(vex_biped(14, 22, stride=True), "enemies", "vex", "goblin_walk.png")
     save(vex_biped(16, 26, cloak=True), "enemies", "vex", "hobgoblin.png")
     save(vex_biped(24, 32, broad=True, crest=True), "enemies", "vex", "minotaur.png")
+    save(vex_biped(24, 32, broad=True, crest=True, stride=True), "enemies", "vex", "minotaur_walk.png")
 
     im = floater(16, 14, VEX_BRASS, VEX_DARK, VEX_GLOW, fins=True)
     save(im, "enemies", "vex", "harpy.png")
@@ -382,9 +387,13 @@ def gen_cabal():
 
     im = biped(24, 30, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True, shield=True)
     save(im, "enemies", "cabal", "phalanx.png")
+    im = biped(24, 30, CABAL_ARMOR, CABAL_DARK, CABAL_GLOW, broad=True, shield=True, stride=True)
+    save(im, "enemies", "cabal", "phalanx_walk.png")
 
     im = biped(12, 22, CABAL_SUIT, CABAL_DARK, (200, 140, 255, 255), hunch=1)
     save(im, "enemies", "cabal", "psion.png")
+    im = biped(12, 22, CABAL_SUIT, CABAL_DARK, (200, 140, 255, 255), hunch=1, stride=True)
+    save(im, "enemies", "cabal", "psion_walk.png")
 
 
 if __name__ == "__main__":

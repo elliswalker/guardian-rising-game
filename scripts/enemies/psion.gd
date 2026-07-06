@@ -24,7 +24,24 @@ const COLOR_DEFAULT := Color.WHITE
 const COLOR_HIT     := Color(0.85, 0.55, 1.0, 1.0)
 const COLOR_LOOT    := Color(1.0, 0.85, 0.25, 1.0)
 
-@onready var _sprite: CanvasItem = $PsionSprite
+@onready var _sprite: Sprite2D = $PsionSprite
+
+# 2-frame walk cycle (#46)
+const TEX_STAND := preload("res://assets/sprites/enemies/cabal/psion.png")
+const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/psion_walk.png")
+const WALK_FRAME_TIME := 0.13
+var _walk_t: float = 0.0
+
+func _animate_walk(delta: float) -> void:
+	if not _sprite:
+		return
+	if absf(velocity.x) < 2.0:
+		_walk_t = 0.0
+		_sprite.texture = TEX_STAND
+		return
+	_sprite.flip_h = velocity.x > 0.0
+	_walk_t += delta
+	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
 
 var march_dir: float = -1.0
 var exit_x: float = 850.0
@@ -57,6 +74,7 @@ func retreat() -> void:
 	_state = State.RETREATING
 
 func _physics_process(delta: float) -> void:
+	_animate_walk(delta)
 	match _state:
 		State.FERAL:         _do_feral(delta)
 		State.CARRYING_LOOT: _do_retreat(delta)

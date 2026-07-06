@@ -106,6 +106,94 @@ def tower_block(im, x, top, w, color, *, cap=None, antenna=False):
         px(im, ax, top - 9, (255, 90, 80, 200))  # aircraft light
 
 
+# ── plate-fidelity helpers (#44) — toward the Earth plates' richness ─────────
+def _mix(a, b, t):
+    return (int(a[0] + (b[0] - a[0]) * t), int(a[1] + (b[1] - a[1]) * t),
+            int(a[2] + (b[2] - a[2]) * t), 255)
+
+
+def _shade(c, f, a=255):
+    return (min(255, int(c[0] * f)), min(255, int(c[1] * f)),
+            min(255, int(c[2] * f)), a)
+
+
+def blend_px(im, x, y, c, a):
+    """Alpha-composite c over the existing pixel (for opaque sky plates)."""
+    if 0 <= x < W and 0 <= y < H:
+        e = im.getpixel((x, y))
+        im.putpixel((x, y), _mix(e, (c[0], c[1], c[2], 255), a / 255.0))
+
+
+def haze_blobs(im, y_center, count, w_range, color, alpha):
+    """Soft-edged cloud/dust blobs BLENDED onto the gradient — not pasted."""
+    for _ in range(count):
+        cw = random.randint(*w_range)
+        ch = max(2, cw // 5)
+        cx = random.randint(cw // 2 + 2, W - cw // 2 - 2)
+        cy = y_center + random.randint(-14, 14)
+        for y in range(cy - ch, cy + ch + 1):
+            for x in range(cx - cw // 2, cx + cw // 2 + 1):
+                nx = (x - cx) / (cw / 2)
+                ny = (y - cy) / max(1, ch)
+                d2 = nx * nx + ny * ny
+                if d2 <= 1.0:
+                    blend_px(im, x, y, color, alpha * (1.0 - d2))
+
+
+def grad_sky(im, top_c, bot_c, bands=14):
+    """Opaque banded sky gradient with dithered band seams — the plate look."""
+    for y in range(H):
+        t = y / (H - 1)
+        band_t = int(t * bands) / bands
+        c = _mix(top_c, bot_c, band_t)
+        for x in range(W):
+            # dither the seam rows so bands read as airbrush, not stripes
+            if random.random() < 0.35:
+                c2 = _mix(top_c, bot_c, min(1.0, band_t + 1.0 / bands))
+                px(im, x, y, c2 if (x + y) % 2 == 0 else c)
+            else:
+                px(im, x, y, c)
+
+
+def ridge_ramped(im, base_y, amp, cycles, base_color, *, rough=0.0, striations=True):
+    """Ridge fill with a 3-tone vertical ramp, rock striations, and a
+    1px haze crest — replaces the flat silhouette bands."""
+    lit = _shade(base_color, 1.18)
+    dark = _shade(base_color, 0.80)
+    phases = [random.uniform(0, math.tau) for _ in cycles]
+    heights = []
+    for x in range(W):
+        t = x / W * math.tau
+        hgt = base_y
+        for (cyc, weight), ph in zip(cycles, phases):
+            hgt += math.sin(t * cyc + ph) * amp * weight
+        if rough:
+            hgt += random.uniform(-rough, rough)
+        heights.append(int(hgt))
+    for x in range(W):
+        crest = heights[x]
+        for y in range(max(0, crest), H):
+            depth = y - crest
+            if depth <= 2:
+                c = lit
+            elif depth <= 11:
+                c = base_color
+            else:
+                c = dark
+            px(im, x, y, c)
+        # haze crest — a breath of sky caught on the ridge line
+        if crest > 0:
+            px(im, x, crest - 1, _shade(base_color, 1.35, 110))
+    if striations:
+        for _ in range(W // 6):
+            x = random.randint(0, W - 1)
+            top = heights[x] + random.randint(4, 14)
+            ln = random.randint(2, 5)
+            for i in range(ln):
+                if top + i < H:
+                    px(im, x, top + i, dark)
+
+
 # ── EARTH — Last City outskirts ───────────────────────────────────────────────
 def gen_earth():
     # 0: the Traveler + high clouds
@@ -150,99 +238,134 @@ def gen_earth():
     save(im, "earth", "layer_3.png")
 
 
-# ── COSMODROME — rusted launch yards ─────────────────────────────────────────
+# ── COSMODROME — rusted launch yards (plate-fidelity pass, #44) ──────────────
 def gen_cosmodrome():
+    # 0: full gradient sky — cold grey-blue into rusted horizon light
     im = canvas()
-    cloud_band(im, 60, 8, (30, 80), (150, 148, 156, 70))
-    cloud_band(im, 95, 5, (20, 50), (135, 132, 142, 55))
+    grad_sky(im, (86, 98, 120), (172, 158, 146))
+    haze_blobs(im, 44, 6, (36, 88), (168, 172, 184), 120)    # high streaks
+    haze_blobs(im, 74, 8, (30, 80), (150, 148, 156), 100)
+    haze_blobs(im, 104, 5, (22, 55), (188, 178, 168), 80)    # lit low band
     save(im, "cosmodrome", "layer_0.png")
 
+    # 1: distant hills — ramped, hazed crests
     im = canvas()
-    ridge(im, 116, 12, [(3, 1.0), (6, 0.5)], (98, 92, 96, 255))
+    ridge_ramped(im, 116, 12, [(3, 1.0), (6, 0.5)], (105, 100, 104, 255))
     save(im, "cosmodrome", "layer_1.png")
 
-    # 2: gantries + a dead colony ship on the horizon
+    # 2: gantries + the dead colony ship, on a ramped bench
     im = canvas()
-    ridge(im, 146, 5, [(2, 1.0), (5, 0.4)], (78, 72, 74, 255))
+    ridge_ramped(im, 146, 5, [(2, 1.0), (5, 0.4)], (80, 74, 76, 255))
     for x in [40, 130, 235]:                                  # launch gantries
         rect(im, x, 92, x + 2, H - 1, (72, 66, 68, 255))
         rect(im, x + 8, 100, x + 10, H - 1, (72, 66, 68, 255))
         for y in range(96, 150, 7):                           # crossbeams
             rect(im, x, y, x + 10, y, (72, 66, 68, 255))
+        rect(im, x, 92, x + 2, 92, (96, 88, 88, 255))         # lit rail
         px(im, x + 1, 90, (255, 90, 80, 200))
     hx = 175                                                  # ship hull, half-buried
     for i in range(40):
         y_top = 128 + int(12 * math.sin(i / 40 * math.pi))
         rect(im, hx + i, y_top, hx + i, H - 1, (86, 80, 82, 255))
+        px(im, hx + i, y_top, (108, 100, 100, 255))           # lit spine
+    for wx, wy in [(184, 138), (196, 134), (208, 136)]:       # hull windows
+        px(im, wx, wy, (140, 160, 170, 180))
     save(im, "cosmodrome", "layer_2.png")
 
+    # 3: near bench — dark ramp, fence posts, debris
     im = canvas()
-    ridge(im, 164, 3, [(5, 1.0), (13, 0.4)], (58, 54, 56, 255), rough=1.0)
-    for x in [22, 75, 160, 240, 295]:                          # fence posts + debris
-        rect(im, x, 152, x, 163, (52, 48, 50, 255))
-        px(im, x + random.randint(2, 6), 162, (52, 48, 50, 255))
+    ridge_ramped(im, 164, 3, [(5, 1.0), (13, 0.4)], (58, 54, 56, 255), rough=1.0)
+    for x in [22, 75, 160, 240, 295]:
+        rect(im, x, 152, x, 163, (48, 44, 46, 255))
+        px(im, x, 152, (66, 60, 62, 255))
+        px(im, x + random.randint(2, 6), 162, (48, 44, 46, 255))
     save(im, "cosmodrome", "layer_3.png")
 
 
-# ── MOON — Hellmouth dark ─────────────────────────────────────────────────────
+# ── MOON — Hellmouth dark (plate-fidelity pass, #44) ─────────────────────────
 def gen_moon():
+    # 0: void gradient with a dust lane and a deep starfield
     im = canvas()
-    stars(im, 120, [(220, 224, 235, 255), (170, 178, 200, 200), (140, 200, 160, 160)])
+    grad_sky(im, (6, 6, 14), (26, 28, 44))
+    for _ in range(160):                                       # faint galaxy dust
+        x = random.randint(0, W - 1)
+        y = random.randint(30, 90)
+        if random.random() < 0.5:
+            px(im, x, y, (34, 34, 52, 255))
+    stars(im, 150, [(220, 224, 235, 255), (170, 178, 200, 200), (140, 200, 160, 160)])
     save(im, "moon", "layer_0.png")
 
+    # 1: far crater rim — ramped regolith
     im = canvas()
-    ridge(im, 112, 14, [(2, 1.0), (7, 0.4)], (56, 58, 76, 255))
+    ridge_ramped(im, 112, 14, [(2, 1.0), (7, 0.4)], (58, 60, 78, 255))
     save(im, "moon", "layer_1.png")
 
-    # 2: bone spires of the Hellmouth
+    # 2: bone spires of the Hellmouth, lit edges + soulfire tips
     im = canvas()
-    ridge(im, 148, 5, [(3, 1.0), (8, 0.4)], (44, 46, 62, 255))
+    ridge_ramped(im, 148, 5, [(3, 1.0), (8, 0.4)], (46, 48, 64, 255))
     for x, hgt in [(35, 60), (90, 38), (148, 72), (205, 45), (262, 58)]:
         for i in range(hgt):                                   # tapering spire
             half = max(1, (hgt - i) * 3 // hgt)
             rect(im, x - half, H - 40 - i, x + half, H - 40 - i, (44, 46, 62, 255))
+            px(im, x - half, H - 40 - i, (58, 60, 80, 255))    # lit left edge
         px(im, x, H - 40 - hgt - 1, (120, 235, 130, 160))      # sickly tip glow
+        px(im, x, H - 40 - hgt, (80, 140, 90, 120))            # glow falloff
     save(im, "moon", "layer_2.png")
 
+    # 3: near regolith bench + crater rocks
     im = canvas()
-    ridge(im, 164, 3, [(4, 1.0), (11, 0.5)], (34, 36, 48, 255), rough=1.0)
-    for x in [48, 120, 198, 270]:                              # crater rocks
+    ridge_ramped(im, 164, 3, [(4, 1.0), (11, 0.5)], (36, 38, 50, 255), rough=1.0)
+    for x in [48, 120, 198, 270]:
         rect(im, x, 158, x + 6, 164, (30, 32, 44, 255))
         rect(im, x + 1, 156, x + 4, 157, (30, 32, 44, 255))
+        px(im, x + 1, 156, (44, 46, 60, 255))                  # lit rock top
     save(im, "moon", "layer_3.png")
 
 
-# ── MARS — Meridian Bay war haze ─────────────────────────────────────────────
+# ── MARS — Meridian Bay war haze (plate-fidelity pass, #44) ──────────────────
 def gen_mars():
+    # 0: dust-choked gradient sky, haze bands stacking toward the horizon
     im = canvas()
-    cloud_band(im, 70, 9, (36, 90), (168, 122, 92, 60))        # dust haze bands
-    cloud_band(im, 100, 6, (28, 66), (150, 104, 78, 50))
+    grad_sky(im, (126, 76, 56), (206, 150, 110))
+    haze_blobs(im, 52, 7, (36, 90), (176, 128, 96), 110)       # dust haze bands
+    haze_blobs(im, 82, 9, (30, 80), (160, 112, 84), 95)
+    haze_blobs(im, 110, 6, (24, 60), (214, 164, 124), 80)      # lit low dust
     save(im, "mars", "layer_0.png")
 
+    # 1: mesas — ramped rock with true flat tables
     im = canvas()
-    ridge(im, 110, 10, [(2, 1.0), (4, 0.5)], (128, 84, 62, 255))  # mesas: flat-ish
-    for x0, x1, top in [(45, 105, 96), (190, 275, 90)]:           # true flat tables
-        rect(im, x0, top, x1, H - 1, (128, 84, 62, 255))
+    ridge_ramped(im, 110, 10, [(2, 1.0), (4, 0.5)], (132, 88, 64, 255))
+    for x0, x1, top in [(45, 105, 96), (190, 275, 90)]:
+        rect(im, x0, top, x1, H - 1, (132, 88, 64, 255))
+        rect(im, x0, top, x1, top + 1, (152, 104, 76, 255))    # sunlit tabletop
         rect(im, x0 + 4, top + 6, x1 - 4, top + 7, (114, 74, 54, 255))
+        rect(im, x0, top + 14, x1, H - 1, (110, 72, 52, 255))  # shadowed base
     save(im, "mars", "layer_1.png")
 
-    # 2: cabal war machines on the horizon
+    # 2: cabal war machines on a ramped bench
     im = canvas()
-    ridge(im, 146, 5, [(3, 1.0), (6, 0.4)], (96, 62, 50, 255))
-    for x in [60, 210]:                                        # landed warship legs
+    ridge_ramped(im, 146, 5, [(3, 1.0), (6, 0.4)], (98, 64, 52, 255))
+    for x in [60, 210]:                                        # landed warships
         rect(im, x, 108, x + 42, 122, (76, 50, 44, 255))       # hull slab
-        rect(im, x + 4, 122, x + 8, H - 1, (76, 50, 44, 255))
-        rect(im, x + 34, 122, x + 38, H - 1, (76, 50, 44, 255))
+        rect(im, x, 108, x + 42, 109, (94, 62, 52, 255))       # lit hull top
+        rect(im, x + 4, 122, x + 8, H - 1, (68, 44, 40, 255))  # legs
+        rect(im, x + 34, 122, x + 38, H - 1, (68, 44, 40, 255))
         px(im, x + 21, 106, (255, 190, 90, 200))               # amber running light
+        for vy in range(112, 121, 4):                          # hull vents
+            rect(im, x + 6, vy, x + 36, vy, (66, 42, 38, 255))
     for x in [140, 290]:                                       # extraction chimneys
         rect(im, x, 118, x + 3, H - 1, (82, 54, 46, 255))
+        px(im, x + 1, 116, (150, 110, 90, 160))                # smoke wisp
+        px(im, x + 2, 113, (150, 110, 90, 110))
     save(im, "mars", "layer_2.png")
 
+    # 3: near dune bench + pod wreckage
     im = canvas()
-    ridge(im, 163, 4, [(5, 1.0), (12, 0.4)], (70, 46, 38, 255), rough=1.2)
-    for x in [35, 110, 185, 255]:                              # pod wreckage
+    ridge_ramped(im, 163, 4, [(5, 1.0), (12, 0.4)], (74, 48, 40, 255), rough=1.2)
+    for x in [35, 110, 185, 255]:
         rect(im, x, 156, x + 5, 163, (60, 40, 34, 255))
         px(im, x + 2, 154, (60, 40, 34, 255))
+        px(im, x, 156, (78, 52, 44, 255))                      # lit wreck edge
     save(im, "mars", "layer_3.png")
 
 

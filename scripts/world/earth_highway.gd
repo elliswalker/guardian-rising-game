@@ -96,6 +96,7 @@ func _ready() -> void:
 	GameState.portal_broken.connect(_on_portal_broken)
 	_layout_rng.seed = hash(PLANET_NAME) + GameState.current_run * 7919
 	ParallaxLoader.build($ParallaxBackground, PLANET_NAME)
+	_scatter_decor()
 	_jitter_layout()
 	_spawn_trees()
 	_spawn_world_objects()
@@ -363,10 +364,13 @@ func _simulate_away_nights(st: Dictionary) -> void:
 # ── WORLD SETUP ───────────────────────────────────────────────────────────────
 
 func _spawn_trees() -> void:
+	# K2C copses (#50): each mark grows a cluster of 1-3 mixed-style trees
 	for x: float in TREE_POSITIONS:
-		var tree: Node2D = TREE_SCENE.instantiate() as Node2D
-		tree.position = Vector2(x + _layout_rng.randf_range(-25.0, 25.0), 148.0)
-		add_child(tree)
+		for i in _layout_rng.randi_range(1, 3):
+			var tree: Node2D = TREE_SCENE.instantiate() as Node2D
+			var off: float = _layout_rng.randf_range(-25.0, 25.0) + float(i) * 22.0
+			tree.position = Vector2(x + off, 148.0)
+			add_child(tree)
 
 
 # The land ends in liquid, not a cliff (#25)
@@ -569,3 +573,11 @@ func debug_spawn_dreg() -> void:
 
 func debug_force_dusk() -> void:
 	_day_timer = 0.0
+
+# World dressing (#50) — see scripts/utils/decor.gd
+func _scatter_decor() -> void:
+	var paths: Array[String] = [
+		"res://assets/sprites/structures/pro_bush.png",
+		"res://assets/sprites/structures/pro_tuft.png",
+	]
+	Decor.scatter(self, paths, 26, _layout_rng, 120.0, 1230.0, 5.0, 11.0, false)

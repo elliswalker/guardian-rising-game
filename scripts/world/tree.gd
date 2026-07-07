@@ -9,8 +9,19 @@ const GLIMMER_PER_CHOP  := 10
 const GLIMMER_FINAL     := 15
 const INTERACT_RANGE    := 28.0
 
+const TEX_STYLES: Array[Texture2D] = [
+	preload("res://assets/sprites/structures/pro_tree_oak.png"),
+	preload("res://assets/sprites/structures/pro_tree_oak2.png"),
+	preload("res://assets/sprites/structures/pro_tree_birch.png"),
+	preload("res://assets/sprites/structures/pro_tree_birch2.png"),
+]
+const TEX_BUSH := preload("res://assets/sprites/structures/pro_bush.png")
+const TEX_TUFT := preload("res://assets/sprites/structures/pro_tuft.png")
+
 @onready var _foliage: Sprite2D = $Foliage
 @onready var _trunk:   Sprite2D = $Trunk
+
+var _bushes: Array[Sprite2D] = []
 
 var _hp: int = HP_MAX
 var _commissioned: bool = false
@@ -18,7 +29,41 @@ var _player_nearby: bool = false
 
 func _ready() -> void:
 	add_to_group("trees")
+	_apply_style()
+	_spawn_ground_cover()
 	_update_visual()
+
+# Mixed copse styles (#50): each tree rolls one of four full-tree arts
+func _apply_style() -> void:
+	var tex: Texture2D = TEX_STYLES[randi() % TEX_STYLES.size()]
+	var target_h: float = randf_range(38.0, 50.0)
+	var s: float = target_h / float(tex.get_height())
+	_foliage.texture = tex
+	_foliage.scale = Vector2(s, s)
+	_foliage.position = Vector2(0.0, 2.0 - target_h * 0.5)
+	_trunk.visible = false
+
+# K2C ground cover: brush huddles at the trunk and fades once cleared (#50)
+func _spawn_ground_cover() -> void:
+	for i in randi() % 3:
+		var bush := Sprite2D.new()
+		var tex: Texture2D = TEX_BUSH if randf() < 0.6 else TEX_TUFT
+		var h: float = randf_range(5.0, 9.0)
+		bush.texture = tex
+		bush.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		bush.scale = Vector2(h / float(tex.get_height()), h / float(tex.get_height()))
+		bush.position = position + Vector2(randf_range(-24.0, 24.0), 2.0 - h * 0.5)
+		bush.z_index = -3
+		_bushes.append(bush)
+		get_parent().add_child.call_deferred(bush)
+
+func _fade_ground_cover() -> void:
+	for bush: Sprite2D in _bushes:
+		if not is_instance_valid(bush):
+			continue
+		var tw: Tween = bush.create_tween()
+		tw.tween_property(bush, "modulate:a", 0.0, 2.0)
+		tw.tween_callback(bush.queue_free)
 
 func _process(_delta: float) -> void:
 	if _commissioned:
@@ -54,6 +99,7 @@ func chop() -> bool:
 	if _hp <= 0:
 		# Wall positions are authored — a felled tree yields glimmer, not a build slot
 		GameState.add_glimmer(GLIMMER_FINAL)
+		_fade_ground_cover()
 		queue_free()
 		return true
 	return false
@@ -66,4 +112,3 @@ func _update_visual() -> void:
 	if _commissioned:
 		fol = Color(1.0, 0.85, 0.55, 1.0)  # marked for chopping — warm flag
 	_foliage.modulate = fol
-	_trunk.modulate = Color(0.35 - (1.0 - t) * 0.12, 0.22 - (1.0 - t) * 0.05, 0.10, 1.0)

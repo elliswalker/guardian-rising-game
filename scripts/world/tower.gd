@@ -7,11 +7,12 @@ const HITS_PER_HP    := 4  # tower is sturdier than a wall
 const BUILD_COST     := 150
 const BUILD_SWINGS   := 4
 
-const COLOR_HEALTHY    := Color(0.50, 0.44, 0.36, 1.0)
-const COLOR_DAMAGED    := Color(0.28, 0.22, 0.16, 1.0)
-const COLOR_UNBUILT    := Color(0.35, 0.33, 0.30, 0.45)
-const COLOR_BALLISTA   := Color(0.72, 0.55, 0.30, 1.0)
-const COLOR_FLARE      := Color(0.55, 0.70, 0.85, 1.0)
+const COLOR_DAMAGED := Color(0.28, 0.22, 0.16, 1.0)
+
+# Hermit conversions wear REAL art (#50), not a beige tint
+const TEX_TOWER    := preload("res://assets/sprites/structures/pro_tower.png")
+const TEX_BALLISTA := preload("res://assets/sprites/structures/pro_tower_ballista.png")
+const TEX_FLARE    := preload("res://assets/sprites/structures/pro_tower_flare.png")
 
 # Hermit conversions (EP-13)
 const BALLISTA_RANGE    := 260.0
@@ -162,13 +163,14 @@ func _update_visual() -> void:
 	_sprite.visible = true
 	if _mound:
 		_mound.visible = false
-	var base: Color = COLOR_HEALTHY
 	if special == "gunsmith":
-		base = COLOR_BALLISTA
+		_sprite.texture = TEX_BALLISTA
 	elif special == "tinker":
-		base = COLOR_FLARE
+		_sprite.texture = TEX_FLARE
+	else:
+		_sprite.texture = TEX_TOWER
 	var t: float = float(_hp) / float(MAX_HP)
-	_sprite.modulate = base.lerp(COLOR_DAMAGED, 1.0 - t)
+	_sprite.modulate = Color.WHITE.lerp(COLOR_DAMAGED, 1.0 - t)
 
 func _fire_at_nearest_enemy() -> void:
 	if not _bullet_scene:

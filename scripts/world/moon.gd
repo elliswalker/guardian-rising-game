@@ -18,6 +18,8 @@ const WALL_SCENE      := preload("res://scenes/world/wall.tscn")
 const FOUNDRY_SCENE   := preload("res://scenes/world/foundry.tscn")
 const SHRINE_SCENE    := preload("res://scenes/world/ghost_shrine.tscn")
 const PICKUP_SCENE    := preload("res://scenes/world/pickup.tscn")
+const WILDLIFE_SCENE  := preload("res://scenes/world/wildlife.tscn")
+const TEX_FAUNA       := preload("res://assets/sprites/world/pro_worm.png")
 
 const PLANET_NAME := "moon"
 
@@ -87,6 +89,7 @@ func _ready() -> void:
 	GameState.portal_broken.connect(_on_portal_broken)
 	_layout_rng.seed = hash(PLANET_NAME) + GameState.current_run * 7919
 	ParallaxLoader.build($ParallaxBackground, PLANET_NAME)
+	_scatter_decor()
 	_jitter_layout()
 	_spawn_world_objects()
 	_spawn_shoreline()
@@ -121,6 +124,7 @@ func _start_lull() -> void:
 	_phase = Phase.LULL
 	_transition_sky(COLOR_SKY_LULL, 3.5)
 	_spawn_lull_caches()
+	_spawn_day_wildlife()
 	_try_spawn_frame()
 	GameState.day_started.emit(GameState.day_number)
 
@@ -563,3 +567,22 @@ func debug_spawn_dreg() -> void:
 
 func debug_force_dusk() -> void:
 	_lull_timer = 0.0
+
+# World dressing (#50) — see scripts/utils/decor.gd
+func _scatter_decor() -> void:
+	var paths: Array[String] = [
+		"res://assets/sprites/structures/pro_moon_rock.png",
+		"res://assets/sprites/structures/pro_moon_crater.png",
+	]
+	Decor.scatter(self, paths, 22, _layout_rng, 170.0, 1230.0, 7.0, 18.0, true)
+
+# Planet fauna (#50) — glimmer prey for redjack patrols
+func _spawn_day_wildlife() -> void:
+	for i in 3:
+		var critter: Node2D = WILDLIFE_SCENE.instantiate() as Node2D
+		critter.position = Vector2(randf_range(-420.0, 420.0), 147.5)
+		var body: Sprite2D = critter.get_node("Body") as Sprite2D
+		body.texture = TEX_FAUNA
+		var sc: float = 7.0 / float(TEX_FAUNA.get_height())
+		body.scale = Vector2(sc, sc)
+		add_child(critter)

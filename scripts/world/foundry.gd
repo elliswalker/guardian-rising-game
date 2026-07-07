@@ -10,7 +10,7 @@ extends Area2D
 @export var display_name: String = "Foundry"
 @export var unlock_label: String = "unlocks Metal-tier walls & towers"
 
-@onready var _body: ColorRect = $Body
+@onready var _body: Sprite2D = $Body  # Pro foundry art (#49)
 @onready var _glow: ColorRect = $Glow
 
 var _player_nearby: bool = false
@@ -57,8 +57,8 @@ func _restore() -> void:
 
 func _update_visual() -> void:
 	if _is_unlocked():
-		_body.color = Color(0.55, 0.45, 0.30, 1.0)   # lit forge
+		_body.modulate = Color(1.15, 1.05, 0.9, 1.0)  # lit forge
 		_glow.color = Color(1.0, 0.55, 0.15, 0.35)   # ember glow
 	else:
-		_body.color = Color(0.25, 0.24, 0.22, 1.0)   # cold ruin
+		_body.modulate = Color(0.45, 0.44, 0.46, 1.0)  # cold ruin
 		_glow.color = Color(1.0, 0.55, 0.15, 0.0)

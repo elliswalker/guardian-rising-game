@@ -70,6 +70,14 @@ func _build_title() -> void:
 	_ghost.scale = Vector2(3.0, 3.0)
 	_ghost.position = Vector2(640, 110)
 	add_child(_ghost)
+	var divider := Label.new()
+	divider.text = "\u00b7 \u00b7 \u2500 \u25c8 \u2500 \u00b7 \u00b7"
+	divider.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	divider.add_theme_font_size_override("font_size", 12)
+	divider.add_theme_color_override("font_color", Color(0.78, 0.66, 0.35, 0.85))
+	divider.position = Vector2(0, 196)
+	divider.size = Vector2(1280, 20)
+	add_child(divider)
 
 func _build_menu() -> void:
 	_menu_box = VBoxContainer.new()
@@ -97,9 +105,9 @@ func _build_palette_picker() -> void:
 	_palette_label.visible = false
 	add_child(_palette_label)
 	_preview = Sprite2D.new()
-	_preview.texture = preload("res://assets/sprites/player/hunter.png")
+	_preview.texture = preload("res://assets/sprites/player/guardian_right.png")
 	_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_preview.scale = Vector2(4.0, 4.0)
+	_preview.scale = Vector2(2.0, 2.0)
 	_preview.position = Vector2(640, 380)
 	_preview.visible = false
 	add_child(_preview)
@@ -140,7 +148,7 @@ func _refresh() -> void:
 		for i in _entries.size():
 			var lit: bool = i == _index
 			var dim_extra: bool = i == 0 and not has_save
-			_entries[i].text = ("· %s ·" % ["CONTINUE", "NEW RUN", "OPTIONS", "QUIT"][i]) if lit \
+			_entries[i].text = ("◈  %s  ◈" % ["CONTINUE", "NEW RUN", "OPTIONS", "QUIT"][i]) if lit \
 				else ["CONTINUE", "NEW RUN", "OPTIONS", "QUIT"][i]
 			var col: Color = COLOR_LIT if lit else COLOR_DIM
 			if dim_extra:

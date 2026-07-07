@@ -13,6 +13,7 @@ const COLOR_DAMAGED := Color(0.28, 0.22, 0.16, 1.0)
 const TEX_TOWER    := preload("res://assets/sprites/structures/pro_tower.png")
 const TEX_BALLISTA := preload("res://assets/sprites/structures/pro_tower_ballista.png")
 const TEX_FLARE    := preload("res://assets/sprites/structures/pro_tower_flare.png")
+const TEX_FLASH    := preload("res://assets/sprites/fx/tower_flash.png")
 
 # Hermit conversions (EP-13)
 const BALLISTA_RANGE    := 260.0
@@ -194,3 +195,16 @@ func _fire_at_nearest_enemy() -> void:
 		bullet.set("damage", BALLISTA_DAMAGE)
 	bullet.global_position = global_position + Vector2(dir * 8.0, -8.0)
 	get_parent().add_child(bullet)
+	_spawn_fire_flash(dir)
+
+# Tower-fire FX (#50): a one-blink starburst off the parapet
+func _spawn_fire_flash(dir: float) -> void:
+	var flash := Sprite2D.new()
+	flash.texture = TEX_FLASH
+	flash.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	flash.position = Vector2(dir * 10.0, -10.0)
+	flash.flip_h = dir < 0.0
+	add_child(flash)
+	var tw: Tween = flash.create_tween()
+	tw.tween_property(flash, "modulate:a", 0.0, 0.10)
+	tw.tween_callback(flash.queue_free)

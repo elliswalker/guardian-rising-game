@@ -10,6 +10,7 @@ const ENTRIES: Array[String] = ["RESUME", "OPTIONS", "SAVE & QUIT TO MENU", "QUI
 
 var _shade: ColorRect
 var _box: VBoxContainer
+var _status: Label
 var _rows: Array[Label] = []
 var _options: OptionsPanel
 var _index: int = 0
@@ -29,6 +30,20 @@ func _ready() -> void:
 	_box.position = Vector2(390, 250)
 	_box.size = Vector2(500, 220)
 	add_child(_box)
+	var title := Label.new()
+	title.text = "\u2014  P A U S E D  \u2014"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", COLOR_LIT)
+	_box.add_child(title)
+	_status = Label.new()
+	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status.add_theme_font_size_override("font_size", 12)
+	_status.add_theme_color_override("font_color", Color(0.78, 0.66, 0.35, 1.0))
+	_box.add_child(_status)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, 10)
+	_box.add_child(gap)
 	for text: String in ENTRIES:
 		var row := Label.new()
 		row.text = text
@@ -81,6 +96,7 @@ func _pause() -> void:
 	_index = 0
 	_mode = "menu"
 	get_tree().paused = true
+	_status.text = "DAY %d      \u25c8 %d" % [GameState.day_number, GameState.glimmer]
 	_refresh()
 
 func _resume() -> void:
@@ -91,7 +107,7 @@ func _refresh() -> void:
 	_box.visible = _mode == "menu"
 	_options.visible = _mode == "options"
 	for i in _rows.size():
-		_rows[i].text = ("· %s ·" % ENTRIES[i]) if i == _index else ENTRIES[i]
+		_rows[i].text = ("◈  %s  ◈" % ENTRIES[i]) if i == _index else ENTRIES[i]
 		_rows[i].add_theme_color_override("font_color", COLOR_LIT if i == _index else COLOR_DIM)
 
 func _choose() -> void:

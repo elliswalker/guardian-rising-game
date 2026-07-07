@@ -36,7 +36,8 @@ const COLOR_TETHERED := Color(0.55, 0.55, 0.70, 1.0)
 
 # PRO art (#49): faces RIGHT, static until the animation sheets land
 const TEX_STAND := preload("res://assets/sprites/enemies/vex/goblin_right.png")
-const TEX_WALK  := TEX_STAND  # same texture until the animation sheets (#49 phase F)
+# real mid-stride frame (#50) — 2-frame Kingdom walk
+const TEX_WALK  := preload("res://assets/sprites/enemies/vex/goblin_walk_right.png")
 const WALK_FRAME_TIME := 0.16
 var _walk_t: float = 0.0
 

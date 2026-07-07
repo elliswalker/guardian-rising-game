@@ -23,7 +23,8 @@ const COLOR_DAMAGED := Color(1.0, 0.5, 0.5, 1.0)
 
 # PRO art (#49): faces RIGHT, static until the animation sheets land
 const TEX_STAND := preload("res://assets/sprites/enemies/cabal/legionary_right.png")
-const TEX_WALK  := TEX_STAND  # same texture until the animation sheets (#49 phase F)
+# real mid-stride frame (#50) — 2-frame Kingdom walk
+const TEX_WALK  := preload("res://assets/sprites/enemies/cabal/legionary_walk_right.png")
 const WALK_FRAME_TIME := 0.26
 var _walk_t: float = 0.0
 

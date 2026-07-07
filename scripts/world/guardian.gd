@@ -33,6 +33,7 @@ const ENEMY_DETECT_RANGE := 63.0
 const ATTACK_RANGE_ENGAGE := 21.0
 const ATTACK_RANGE_DEFEND := 53.0
 const ATTACK_COOLDOWN := 1.5
+const TEX_MUZZLE := preload("res://assets/sprites/fx/muzzle_flash.png")
 const SWEEP_RETARGET_INTERVAL := 1.5
 const BUILD_SWING_TIME := 1.0  # seconds per hammer swing; 4 swings completes a wall
 const BUILD_ARRIVE_RANGE := 8.0
@@ -77,20 +78,47 @@ const COLOR_INDICATOR_AMBER := Color(1.0, 0.65, 0.05, 1.0)
 
 # 2-frame walk cycle (#46) — texture swap while moving, tint-safe
 const TEX_STAND := preload("res://assets/sprites/structures/frame_right.png")
-const TEX_WALK  := TEX_STAND  # same texture until the animation sheets (#49 phase F)
+# real mid-stride frame (#50) — 2-frame Kingdom walk
+const TEX_WALK  := preload("res://assets/sprites/structures/frame_walk_right.png")
+# job tools live ON the frame art (#50): gun / hammer / broom states
+const TEX_GUN    := preload("res://assets/sprites/structures/frame_gun_right.png")
+const TEX_HAMMER := preload("res://assets/sprites/structures/frame_hammer_right.png")
+const TEX_BROOM  := preload("res://assets/sprites/structures/frame_broom_right.png")
 const WALK_FRAME_TIME := 0.18
 var _walk_t: float = 0.0
 
 func _animate_walk(delta: float) -> void:
 	if not _sprite:
 		return
+	var base: Texture2D = _base_tex()
 	if absf(velocity.x) < 2.0:
 		_walk_t = 0.0
-		_sprite.texture = TEX_STAND
+		_sprite.texture = base
+		_sprite.offset.y = 0.0
 		return
 	_sprite.flip_h = velocity.x < 0.0  # Pro art faces right
 	_walk_t += delta
-	_sprite.texture = TEX_WALK if fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME else TEX_STAND
+	var step: bool = fmod(_walk_t, WALK_FRAME_TIME * 2.0) >= WALK_FRAME_TIME
+	if base == TEX_STAND:
+		_sprite.texture = TEX_WALK if step else TEX_STAND
+		_sprite.offset.y = 0.0
+	else:
+		# tool stays in hand while walking — stride reads as a 1px bob
+		_sprite.texture = base
+		_sprite.offset.y = -1.0 if step else 0.0
+
+func _base_tex() -> Texture2D:
+	match state:
+		State.PATROL, State.ENGAGE, State.REPOSITIONING, State.DEFENDING, \
+				State.SEEKING_TOWER, State.GARRISONED, State.ASSAULTING:
+			return TEX_GUN
+		State.SWEEPING:
+			return TEX_BROOM
+		State.SEEKING_SITE, State.BUILDING, State.BUILDER_IDLE, \
+				State.REPAIRING, State.CHOPPING:
+			return TEX_HAMMER
+		_:
+			return TEX_STAND
 @onready var _locker_sprite: Sprite2D = $LockerSprite
 @onready var _indicator_light: ColorRect = $IndicatorLight
 
@@ -1128,6 +1156,20 @@ func _flash_attack() -> void:
 	tween.tween_property(_sprite, "modulate", COLOR_FLASH, 0.0)
 	tween.tween_interval(0.08)
 	tween.tween_property(_sprite, "modulate", restore_color, 0.12)
+	_spawn_muzzle_flash()
+
+# Gun-fire FX (#50): a one-blink starburst at the muzzle
+func _spawn_muzzle_flash() -> void:
+	var flash := Sprite2D.new()
+	flash.texture = TEX_MUZZLE
+	flash.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var dir: float = -1.0 if _sprite.flip_h else 1.0
+	flash.position = Vector2(dir * 9.0, -7.0)
+	flash.flip_h = _sprite.flip_h
+	add_child(flash)
+	var tw: Tween = flash.create_tween()
+	tw.tween_property(flash, "modulate:a", 0.0, 0.09)
+	tw.tween_callback(flash.queue_free)
 
 # ── Tree chopping (builders) ──────────────────────────────────────────────────
 

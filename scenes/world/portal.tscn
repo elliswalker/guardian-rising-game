@@ -14,8 +14,8 @@ texture = ExtResource("3")
 
 [node name="Outer" type="Sprite2D" parent="."]
 centered = false
-scale = Vector2(0.6168, 0.6168)
-offset = Vector2(-59, -107)
+scale = Vector2(0.7674, 0.7674)
+offset = Vector2(-43, -86)
 texture = ExtResource("2")
 
 [node name="Base" type="ColorRect" parent="."]

@@ -36,6 +36,7 @@ func _ready() -> void:
 	collision_mask = 8
 	_marker.self_modulate = COLORS[job_type]
 	_label.text = LABELS[job_type].to_upper()
+	_label.visible = not GameState.minimal_ui
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 

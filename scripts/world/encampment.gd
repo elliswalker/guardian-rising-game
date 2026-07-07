@@ -81,3 +81,4 @@ func _update_visual() -> void:
 		_tower_sprite.modulate = Color(0.52 + t * 0.22, 0.55 + t * 0.24, 0.60 + t * 0.30, 1.0)
 	if _label:
 		_label.text = "ENCAMPMENT  T%d" % tier
+		_label.visible = not GameState.minimal_ui

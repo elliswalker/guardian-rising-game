@@ -25,6 +25,7 @@ func _ready() -> void:
 	collision_mask = 8  # player layer
 	_marker.self_modulate = COLOR_DEPOSIT if mode == Mode.DEPOSIT else COLOR_WITHDRAW
 	_label.text = "VAULT IN" if mode == Mode.DEPOSIT else "VAULT OUT"
+	_label.visible = not GameState.minimal_ui
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	GameState.day_started.connect(func(_d: int) -> void: _is_day = true)

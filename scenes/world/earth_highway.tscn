@@ -68,19 +68,19 @@ position = Vector2(-100, 148)
 position = Vector2(-100, 102)
 
 [node name="JobPostSweeperbot" parent="." instance=ExtResource("9")]
-position = Vector2(-145, 148)
+position = Vector2(-215, 148)
 job_type = 1
 
 [node name="JobPostRedjack" parent="." instance=ExtResource("9")]
-position = Vector2(-55, 148)
+position = Vector2(-25, 148)
 job_type = 0
 
 [node name="VaultDeposit" parent="." instance=ExtResource("12")]
-position = Vector2(-122, 148)
+position = Vector2(-185, 148)
 mode = 0
 
 [node name="VaultWithdraw" parent="." instance=ExtResource("12")]
-position = Vector2(-96, 148)
+position = Vector2(-160, 148)
 mode = 1
 
 [node name="JobPostBuilder" parent="." instance=ExtResource("9")]

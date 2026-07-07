@@ -70,6 +70,7 @@ var _quiet_this_night: bool = false
 var _clear_countdown: float = -1.0
 var _next_spawn_side: float = 1.0
 # Seeded per run+planet so the layout is stable across visits (EP-15)
+var _portal_guards_today: bool = false
 var _layout_rng := RandomNumberGenerator.new()
 var _portals_broken: int = 0
 
@@ -117,19 +118,20 @@ func _start_day() -> void:
 	var day: int = GameState.day_number
 	_day_duration = maxf(DAY_DURATION_MIN, DAY_DURATION_BASE - float(day - 1) * DAY_DURATION_DEC)
 	_day_timer = _day_duration
+	_portal_guards_today = false
 	_last_dusk_seconds = -1
 	_phase = Phase.DAY
 	if _sun_disc:
 		_sun_disc.visible = true
 		_update_sun()
 	_spawn_day_caches()
-	_spawn_day_dregs()
 	_spawn_day_wildlife()
 	_try_spawn_frame()
 	GameState.day_started.emit(day)
 
 func _process_day(delta: float) -> void:
 	_day_timer -= delta
+	_check_portal_guards()
 	_update_sun()
 	var curr_secs: int = maxi(0, ceili(_day_timer))
 	if curr_secs != _last_dusk_seconds:
@@ -557,6 +559,22 @@ func _transition_sky(target: Color, duration: float) -> void:
 	ParallaxLoader.tint(get_tree(), target, duration)
 
 # ── DEBUG (shared F1 panel) ───────────────────────────────────────────────────
+
+
+# Wandering day enemies are gone (#50) — but walk up to a portal in
+# daylight and it answers. Guards spawn once per day, and they aggro.
+func _check_portal_guards() -> void:
+	if _portal_guards_today or not GameState.portal_active:
+		return
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	if not player:
+		return
+	for px_x: float in [880.0, -880.0]:
+		if absf(player.global_position.x - px_x) < 200.0:
+			_portal_guards_today = true
+			for i in 2:
+				debug_spawn_dreg()
+			return
 
 func debug_spawn_dreg() -> void:
 	var player: Node = get_tree().get_first_node_in_group("player")

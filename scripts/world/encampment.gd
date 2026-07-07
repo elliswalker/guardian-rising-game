@@ -17,18 +17,12 @@ const TIER_UNLOCKS: Dictionary = {
 }
 const MAX_TIER := 4
 
-const TOWER_TEXTURES: Array[Texture2D] = [
-	preload("res://assets/sprites/structures/encampment_tower_t1.png"),
-	preload("res://assets/sprites/structures/encampment_tower_t2.png"),
-	preload("res://assets/sprites/structures/encampment_tower_t3.png"),
-	preload("res://assets/sprites/structures/encampment_tower_t4.png"),
-]
-
-@onready var _tower_sprite: Sprite2D = $TowerSprite
-# Kingdom buildup (#49 critique): the camp GROWS — fire pit alone at T1,
-# a tent joins at T2, the cabin at T3; the watch tower climbs throughout.
+# ONE building per tier, replacing the last, each larger (#50) — the
+# K2C center: campfire -> tent -> shack -> brick hall. Fire pit stays
+# beside the Speaker as the camp's heart.
 @onready var _tent: Sprite2D = get_node_or_null("Tent")
-@onready var _cabin: Sprite2D = get_node_or_null("Cabin")
+@onready var _shack: Sprite2D = get_node_or_null("Shack")
+@onready var _brick: Sprite2D = get_node_or_null("Brick")
 @onready var _label: Label = $Label
 
 var _player_inside: bool = false
@@ -76,17 +70,12 @@ func _try_upgrade() -> void:
 
 func _update_visual() -> void:
 	var tier: int = GameState.camp_tier()
-	# the watch tower gains a level with each tier and brightens
-	if _tower_sprite:
-		var tex: Texture2D = TOWER_TEXTURES[clampi(tier, 1, MAX_TIER) - 1]
-		_tower_sprite.texture = tex
-		_tower_sprite.offset = Vector2(-tex.get_width() * 0.5, -float(tex.get_height()))
-		var t: float = float(tier - 1) / 3.0
-		_tower_sprite.modulate = Color(0.52 + t * 0.22, 0.55 + t * 0.24, 0.60 + t * 0.30, 1.0)
 	if _tent:
-		_tent.visible = tier >= 2
-	if _cabin:
-		_cabin.visible = tier >= 3
+		_tent.visible = tier == 2
+	if _shack:
+		_shack.visible = tier == 3
+	if _brick:
+		_brick.visible = tier >= 4
 	if _label:
 		_label.text = "ENCAMPMENT  T%d" % tier
 		_label.visible = not GameState.minimal_ui

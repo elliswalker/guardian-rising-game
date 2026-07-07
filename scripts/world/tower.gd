@@ -20,6 +20,7 @@ const BALLISTA_DAMAGE   := 2
 const FRAME_SCENE := preload("res://scenes/world/guardian.tscn")
 
 @onready var _sprite: Sprite2D = $TowerSprite
+@onready var _mound: Sprite2D = get_node_or_null("Mound")
 
 var special: String = ""  # "", "gunsmith" (ballista) or "tinker" (flare)
 var _built: bool = false
@@ -151,9 +152,16 @@ func take_damage(amount: int) -> void:
 	_update_visual()
 
 func _update_visual() -> void:
+	# Unbuilt = a pile of stones waiting to become something (#50 —
+	# Kingdom's rock mound, not a ghost tower)
 	if not _built:
-		_sprite.modulate = COLOR_UNBUILT
+		_sprite.visible = false
+		if _mound:
+			_mound.visible = true
 		return
+	_sprite.visible = true
+	if _mound:
+		_mound.visible = false
 	var base: Color = COLOR_HEALTHY
 	if special == "gunsmith":
 		base = COLOR_BALLISTA

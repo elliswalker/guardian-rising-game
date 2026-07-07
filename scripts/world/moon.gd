@@ -67,6 +67,7 @@ var _clear_countdown: float = -1.0
 var _last_lull_seconds: int = -1
 var _next_spawn_side: float = 1.0
 var _portals_broken: int = 0
+var _portal_guards_today: bool = false
 var _layout_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -116,10 +117,10 @@ func _start_lull() -> void:
 			return
 	GameState.day_number += 1
 	_lull_timer = LULL_DURATION
+	_portal_guards_today = false
 	_phase = Phase.LULL
 	_transition_sky(COLOR_SKY_LULL, 3.5)
 	_spawn_lull_caches()
-	_spawn_lull_wanderers()
 	_try_spawn_frame()
 	GameState.day_started.emit(GameState.day_number)
 
@@ -166,6 +167,7 @@ func _frontier(side: float, base: float) -> float:
 
 func _process_lull(delta: float) -> void:
 	_lull_timer -= delta
+	_check_portal_guards()
 	var secs: int = maxi(0, ceili(_lull_timer))
 	if secs != _last_lull_seconds:
 		_last_lull_seconds = secs
@@ -535,6 +537,22 @@ func _transition_sky(target: Color, duration: float) -> void:
 	ParallaxLoader.tint(get_tree(), target, duration)
 
 # ── DEBUG (shared F1 panel) ───────────────────────────────────────────────────
+
+
+# Wandering day enemies are gone (#50) — but walk up to a portal in
+# daylight and it answers. Guards spawn once per day, and they aggro.
+func _check_portal_guards() -> void:
+	if _portal_guards_today or not GameState.portal_active:
+		return
+	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	if not player:
+		return
+	for px_x: float in [880.0, -880.0]:
+		if absf(player.global_position.x - px_x) < 200.0:
+			_portal_guards_today = true
+			for i in 2:
+				debug_spawn_dreg()
+			return
 
 func debug_spawn_dreg() -> void:
 	var player: Node = get_tree().get_first_node_in_group("player")

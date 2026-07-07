@@ -26,13 +26,19 @@ func _ready() -> void:
 	_marker.self_modulate = COLOR_DEPOSIT if mode == Mode.DEPOSIT else COLOR_WITHDRAW
 	_label.text = "VAULT IN" if mode == Mode.DEPOSIT else "VAULT OUT"
 	_label.visible = not GameState.minimal_ui
+	# the kiosks only APPEAR once the camp can bank (#50)
+	_update_gate_visibility()
+	GameState.encampment_upgraded.connect(func(_t: int) -> void: _update_gate_visibility())
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	GameState.day_started.connect(func(_d: int) -> void: _is_day = true)
 	GameState.dusk_triggered.connect(func(_d: int) -> void: _is_day = false)
 
+func _update_gate_visibility() -> void:
+	visible = GameState.camp_tier() >= 3
+
 func _process(_delta: float) -> void:
-	if not _player_inside:
+	if not visible or not _player_inside:
 		return
 	_show_prompt()  # re-assert each frame to recover from preemption
 	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():

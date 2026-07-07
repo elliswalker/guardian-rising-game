@@ -82,23 +82,23 @@ shape = SubResource("RectangleShape2D_Edge")
 position = Vector2(0, 148)
 
 [node name="JobPostSweeperbot" parent="." instance=ExtResource("9")]
-position = Vector2(-52, 148)
+position = Vector2(-140, 148)
 job_type = 1
 
 [node name="JobPostRedjack" parent="." instance=ExtResource("9")]
-position = Vector2(52, 148)
+position = Vector2(105, 148)
 job_type = 0
 
 [node name="JobPostBuilder" parent="." instance=ExtResource("9")]
-position = Vector2(90, 148)
+position = Vector2(140, 148)
 job_type = 2
 
 [node name="VaultDeposit" parent="." instance=ExtResource("12")]
-position = Vector2(-24, 148)
+position = Vector2(-108, 148)
 mode = 0
 
 [node name="VaultWithdraw" parent="." instance=ExtResource("12")]
-position = Vector2(24, 148)
+position = Vector2(-84, 148)
 mode = 1
 
 [node name="BuildSiteR0" parent="." instance=ExtResource("6")]
@@ -138,10 +138,10 @@ position = Vector2(-470, 148)
 position = Vector2(-550, 148)
 
 [node name="Frame0" parent="." instance=ExtResource("7")]
-position = Vector2(-64, 148)
+position = Vector2(-170, 148)
 
 [node name="Frame1" parent="." instance=ExtResource("7")]
-position = Vector2(64, 148)
+position = Vector2(170, 148)
 
 [node name="Frame2" parent="." instance=ExtResource("7")]
 position = Vector2(470, 148)

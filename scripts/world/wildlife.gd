@@ -47,7 +47,8 @@ func _process(delta: float) -> void:
 	if abs(global_position.x - _home_x) > WANDER_BOUND:
 		_dir = sign(_home_x - global_position.x)
 	if _body:
-		_body.scale.x = -1.0 if _dir < 0.0 else 1.0
+		# flip_h, not scale.x — the Pro critter renders at 0.2222 scale (#49)
+		_body.flip_h = _dir < 0.0
 
 func _nearest_hunter() -> Node2D:
 	var nearest: Node2D = null

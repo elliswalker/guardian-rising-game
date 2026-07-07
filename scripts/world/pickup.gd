@@ -10,7 +10,7 @@ const MOTE_REDUCTION := 2.0
 const MOTE_CAP       := 12.0
 const MOTE_DESPAWN   := 15.0
 
-@onready var _body: ColorRect = $Body
+@onready var _body: Sprite2D = $Body  # drawn shard art (#49)
 
 var _bob_time: float = 0.0
 var _base_y: float = 0.0
@@ -21,9 +21,9 @@ func _ready() -> void:
 	_base_y = position.y
 	body_entered.connect(_on_body_entered)
 	if kind == "mote":
-		_body.color = Color(0.65, 0.85, 1.0, 1.0)
+		_body.self_modulate = Color(0.75, 1.05, 1.35, 1.0)  # mote: shift violet art to ice-blue
 	else:
-		_body.color = Color(0.75, 0.45, 1.0, 1.0)
+		_body.self_modulate = Color.WHITE  # shard: native violet
 
 func _process(delta: float) -> void:
 	_bob_time += delta

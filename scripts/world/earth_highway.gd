@@ -25,7 +25,7 @@ const MAX_DORMANT_FRAMES := 6
 const FRAME_SPAWN_XS: Array[float] = [195.0, 250.0, 310.0, 390.0, 460.0, 540.0]
 
 # Trees scattered across the extended field
-const TREE_POSITIONS: Array[float] = [360.0, 430.0, 510.0, 590.0, 660.0]
+const TREE_POSITIONS: Array[float] = [360.0, 430.0, 510.0, 590.0, 660.0, 760.0, 850.0, 950.0]
 
 const COLOR_SKY_DAY   := Color(0.42, 0.47, 0.55, 1)
 const COLOR_SKY_DUSK  := Color(0.55, 0.32, 0.18, 1)
@@ -60,7 +60,7 @@ enum Phase { DAY, DUSK, NIGHT, DAWN }
 
 var spawn_point_right: Marker2D
 var _sky_rect: ColorRect
-var _sun_disc: ColorRect
+var _sun_disc: TextureRect
 
 var _phase: Phase = Phase.DAY
 var _day_timer: float = 0.0
@@ -495,8 +495,9 @@ func _spawn_caches_near_player(count: int) -> void:
 		_spawn_cache_at(center_x + offset_x)
 
 func _spawn_cache_at(x: float) -> void:
+	# clamped to dry land (#50) — no more glimmer bobbing in the water
 	var cache: Node2D = CACHE_SCENE.instantiate() as Node2D
-	cache.position = Vector2(x, 146.0)
+	cache.position = Vector2(clampf(x, -360.0, 1150.0), 146.0)
 	cache.set("glimmer_amount", randi_range(40, 120))
 	add_child(cache)
 

@@ -1,7 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemies/servitor.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/enemies/fallen/servitor_pro.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/fx/servitor_glow.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/fx/tether_ring.png" id="4"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
 size = Vector2(22, 22)
@@ -15,19 +17,26 @@ scale = Vector2(0.4333, 0.4333)
 texture = ExtResource("2")
 texture_filter = 1
 
-[node name="Glow" type="ColorRect" parent="."]
+[node name="Glow" type="TextureRect" parent="."]
 offset_left = -16.0
 offset_top = -27.0
 offset_right = 16.0
 offset_bottom = 5.0
-color = Color(0.70, 0.40, 1.00, 0.18)
+texture = ExtResource("3")
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
 
-[node name="TetherRing" type="ColorRect" parent="."]
+[node name="TetherRing" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0)
 offset_left = -47.5
 offset_top = -47.5
 offset_right = 47.5
 offset_bottom = 47.5
-color = Color(0.70, 0.45, 1.0, 0.0)
+texture = ExtResource("4")
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -11)

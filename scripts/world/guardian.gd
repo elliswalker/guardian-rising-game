@@ -180,7 +180,10 @@ func _physics_process(delta: float) -> void:
 
 	match state:
 		State.DORMANT:
-			velocity.x = 0.0
+			if wanderer:
+				_do_dormant_wander(delta)
+			else:
+				velocity.x = 0.0
 			_check_recruit_prompt()
 
 		State.SEEKING_JOB_POST:
@@ -249,6 +252,15 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 # ── Dormant ───────────────────────────────────────────────────────────────────
+
+func _do_dormant_wander(delta: float) -> void:
+	_wander_t -= delta
+	if _wander_t <= 0.0:
+		_wander_t = randf_range(2.0, 4.5)
+		_wander_dir = [-1.0, 0.0, 1.0][randi() % 3]
+	if absf(global_position.x - _spawn_pos.x) > 40.0:
+		_wander_dir = signf(_spawn_pos.x - global_position.x)
+	velocity.x = _wander_dir * PATROL_SPEED * 0.5
 
 func _check_recruit_prompt() -> void:
 	if not _player:
@@ -404,10 +416,24 @@ func _do_return_to_spawn() -> void:
 
 var _locker_husk: Sprite2D = null
 
+# First-camp wanderers (#50): the two frames by the fire drift on foot
+# like Kingdom vagrants — no locker, no light, just the walk.
+@export var wanderer: bool = false
+var _wander_dir: float = 0.0
+var _wander_t: float = 0.0
+
 func _restore_locker() -> void:
+	if wanderer:
+		if _locker_sprite:
+			_locker_sprite.visible = false
+		if _indicator_light:
+			_indicator_light.visible = false
+		return
 	if _locker_husk and is_instance_valid(_locker_husk):
 		_locker_husk.queue_free()
 	_locker_husk = null
+	# docked = INSIDE the pod (#50): the lit locker IS the frame
+	_sprite.visible = false
 	if _locker_sprite:
 		_locker_sprite.visible = true
 		_locker_sprite.modulate.a = 1.0
@@ -417,6 +443,7 @@ func _restore_locker() -> void:
 		_indicator_light.color = COLOR_INDICATOR_AMBER
 
 func _open_locker() -> void:
+	_sprite.visible = true
 	if _locker_sprite and not _locker_husk:
 		# the empty pod stays behind, light off
 		_locker_husk = Sprite2D.new()

@@ -52,7 +52,7 @@ enum Phase { LULL, WARNING, SURGE, RESPITE }
 var spawn_point_right: Marker2D
 var spawn_point_left: Marker2D
 var _sky_rect: ColorRect
-var _earth_disc: ColorRect
+var _earth_disc: TextureRect
 
 var _phase: Phase = Phase.LULL
 var _lull_timer: float = 0.0
@@ -408,8 +408,9 @@ func _spawn_lull_caches() -> void:
 		_spawn_cache_at(center_x + randf_range(-185.0, 185.0))
 
 func _spawn_cache_at(x: float) -> void:
+	# clamped to dry land (#50) — no more glimmer bobbing in the water
 	var cache: Node2D = CACHE_SCENE.instantiate() as Node2D
-	cache.position = Vector2(x, 146.0)
+	cache.position = Vector2(clampf(x, -1180.0, 1180.0), 146.0)
 	cache.set("glimmer_amount", randi_range(50, 130))
 	add_child(cache)
 

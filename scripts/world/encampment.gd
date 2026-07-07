@@ -1,31 +1,36 @@
 extends Area2D
 
-# Encampment — the Kingdom center-tier ladder (EP-09).
-# Paid tiers gate what jobs and structures are available. The upgrade is the
-# one workerless build: pay glimmer and it happens.
+# Encampment — the Kingdom center ladder (EP-09, rebuilt #50): nothing
+# here is instant anymore. Pay glimmer to commission the next tier, then
+# BUILDERS raise it — a short build for the fire, longer for every roof.
 #
-# T1 (start): builders AND redjacks — a camp can defend itself from day one
-# T2: +sweeperbot jobs, towers buildable
-# T3: +vault pads
-# T4: the Charge — an army needs a full war camp behind it
+# T0 (start): a smoldering fire pit in the ash — camp not yet lit
+# T1: the fire burns — redjack jobs unlock
+# T2: walk-in tent — +sweeperbots, towers
+# T3: scrap shack — +vault
+# T4: brick hall — the Charge
 
-const TIER_COSTS: Dictionary = { 2: 200, 3: 400, 4: 600 }
+const TIER_COSTS: Dictionary = { 1: 50, 2: 200, 3: 400, 4: 600 }
+const TIER_SWINGS: Dictionary = { 1: 2, 2: 5, 3: 8, 4: 12 }
 const TIER_UNLOCKS: Dictionary = {
+	1: "Light the Fire",
 	2: "Sweeperbots + Towers",
 	3: "The Vault",
 	4: "The Charge",
 }
 const MAX_TIER := 4
+const COLOR_SMOLDER := Color(0.42, 0.40, 0.38, 0.9)
 
-# ONE building per tier, replacing the last, each larger (#50) — the
-# K2C center: campfire -> tent -> shack -> brick hall. Fire pit stays
-# beside the Speaker as the camp's heart.
 @onready var _tent: Sprite2D = get_node_or_null("Tent")
 @onready var _shack: Sprite2D = get_node_or_null("Shack")
 @onready var _brick: Sprite2D = get_node_or_null("Brick")
+@onready var _fire: Sprite2D = get_node_or_null("FirePit")
+@onready var _mound: Sprite2D = get_node_or_null("Mound")
 @onready var _label: Label = $Label
 
 var _player_inside: bool = false
+var _commissioned: bool = false
+var _build_progress: int = 0
 
 func _ready() -> void:
 	add_to_group("encampment")
@@ -35,7 +40,7 @@ func _ready() -> void:
 	_update_visual()
 
 func _process(_delta: float) -> void:
-	if not _player_inside or GameState.camp_tier() >= MAX_TIER:
+	if not _player_inside or GameState.camp_tier() >= MAX_TIER or _commissioned:
 		return
 	_show_prompt()  # re-assert each frame to recover from preemption
 	if GameState.is_prompt_owner(self) and Input.is_action_just_pressed("action") and GameState.try_consume_action():
@@ -62,20 +67,50 @@ func _try_upgrade() -> void:
 	var next_tier: int = GameState.camp_tier() + 1
 	if not GameState.spend_glimmer(TIER_COSTS[next_tier]):
 		return
+	_commissioned = true
+	_build_progress = 0
+	GameState.hide_action_prompt(self)
+	GameState.queue_build_job(self)
+	_update_visual()
+
+# ── Builder contract (same handshake as build_site / tower / ship) ───────────
+
+func add_progress(amount: int) -> bool:
+	if not _commissioned:
+		return true
+	_build_progress += amount
+	if _build_progress >= int(TIER_SWINGS[GameState.camp_tier() + 1]):
+		call_deferred("_finish_tier")
+	return true
+
+func is_complete() -> bool:
+	return not _commissioned
+
+func _finish_tier() -> void:
+	if not _commissioned:
+		return
+	_commissioned = false
+	var next_tier: int = GameState.camp_tier() + 1
 	GameState.set_camp_tier(next_tier)
 	GameState.encampment_upgraded.emit(next_tier)
+	Sound.play("thunk", 0.0, 0.7)
 	_update_visual()
 	if next_tier >= MAX_TIER:
 		GameState.hide_action_prompt(self)
 
 func _update_visual() -> void:
 	var tier: int = GameState.camp_tier()
+	if _fire:
+		# T0: cold ash — the fire only smolders until builders light it
+		_fire.modulate = COLOR_SMOLDER if tier <= 0 else Color.WHITE
 	if _tent:
 		_tent.visible = tier == 2
 	if _shack:
 		_shack.visible = tier == 3
 	if _brick:
 		_brick.visible = tier >= 4
+	if _mound:
+		_mound.visible = _commissioned
 	if _label:
 		_label.text = "ENCAMPMENT  T%d" % tier
 		_label.visible = not GameState.minimal_ui

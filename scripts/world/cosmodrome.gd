@@ -23,7 +23,8 @@ const PLANET_NAME := "cosmodrome"
 
 const MAX_DORMANT_FRAMES := 6
 const FRAME_SPAWN_XS: Array[float] = [-460.0, -310.0, -190.0, 195.0, 320.0, 470.0]
-const TREE_POSITIONS: Array[float] = [-620.0, -480.0, -370.0, 380.0, 500.0, 640.0]
+const TREE_POSITIONS: Array[float] = [-620.0, -480.0, -370.0, 380.0, 500.0, 640.0,
+	-760.0, -900.0, 760.0, 900.0]
 
 const COLOR_SKY_DAY   := Color(0.45, 0.44, 0.48, 1)   # Cosmodrome grey-rust
 const COLOR_SKY_DUSK  := Color(0.52, 0.30, 0.16, 1)
@@ -52,7 +53,7 @@ enum Phase { DAY, DUSK, NIGHT, DAWN }
 var spawn_point_right: Marker2D
 var spawn_point_left: Marker2D
 var _sky_rect: ColorRect
-var _sun_disc: ColorRect
+var _sun_disc: TextureRect
 
 var _phase: Phase = Phase.DAY
 var _day_timer: float = 0.0
@@ -430,8 +431,9 @@ func _spawn_day_caches() -> void:
 		_spawn_cache_at(center_x + randf_range(-175.0, 175.0))
 
 func _spawn_cache_at(x: float) -> void:
+	# clamped to dry land (#50) — no more glimmer bobbing in the water
 	var cache: Node2D = CACHE_SCENE.instantiate() as Node2D
-	cache.position = Vector2(x, 146.0)
+	cache.position = Vector2(clampf(x, -1180.0, 1180.0), 146.0)
 	cache.set("glimmer_amount", randi_range(40, 120))
 	add_child(cache)
 

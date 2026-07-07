@@ -67,12 +67,13 @@ var glimmer: int = 0:
 
 # Vaulted glimmer is safe from combat scatter but isn't armor (EP-10)
 var vaulted_glimmer: int = 0
-# Center-tier ladder: 1=builders, 2=+redjacks, 3=+sweepers/towers, 4=+vault.
-# PER PLANET (#34): every world starts at T1 — build the camp from scratch.
+# Center-tier ladder (#50): 0=smoldering start, 1=fire lit (+redjacks),
+# 2=+sweepers/towers, 3=+vault, 4=the Charge. PER PLANET (#34): every
+# world starts cold — builders raise each tier, nothing is instant.
 var encampment_tiers: Dictionary = {}
 
 func camp_tier() -> int:
-	return int(encampment_tiers.get(current_planet, 1))
+	return int(encampment_tiers.get(current_planet, 0))
 
 func set_camp_tier(tier: int) -> void:
 	encampment_tiers[current_planet] = tier

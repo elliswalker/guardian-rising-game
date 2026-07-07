@@ -25,7 +25,13 @@ const CONVERSIONS: Dictionary = {
 	"tinker": "Flare Tower",
 }
 
-@onready var _body: ColorRect = $Body
+@onready var _body: Sprite2D = $Body
+
+# specialist liveries on the frame chassis — gold gunsmith, SIVA red
+const KIND_TINTS: Dictionary = {
+	"gunsmith": Color(0.95, 0.78, 0.35, 1.0),
+	"tinker": Color(0.90, 0.30, 0.25, 1.0),
+}
 
 var _carried: bool = false
 var _settled: bool = false
@@ -33,6 +39,8 @@ var _player: Node2D = null
 
 func _ready() -> void:
 	add_to_group("hermits")
+	if _body:
+		_body.modulate = KIND_TINTS.get(kind, Color.WHITE)
 	GameState.dusk_triggered.connect(func(_d: int) -> void:
 		if not _carried and not _settled:
 			modulate.a = 0.25)  # hides in the wreckage at night

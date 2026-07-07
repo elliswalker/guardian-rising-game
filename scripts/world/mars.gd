@@ -60,7 +60,7 @@ const POD_SIZE_MAX := 3
 enum Phase { DAY, DUSK, NIGHT, DAWN }
 
 var _sky_rect: ColorRect
-var _sun_disc: ColorRect
+var _sun_disc: TextureRect
 
 var _phase: Phase = Phase.DAY
 var _day_timer: float = 0.0
@@ -458,8 +458,9 @@ func _spawn_day_caches() -> void:
 		_spawn_cache_at(center_x + randf_range(-175.0, 175.0))
 
 func _spawn_cache_at(x: float) -> void:
+	# clamped to dry land (#50) — no more glimmer bobbing in the water
 	var cache: Node2D = CACHE_SCENE.instantiate() as Node2D
-	cache.position = Vector2(x, 146.0)
+	cache.position = Vector2(clampf(x, -1180.0, 1180.0), 146.0)
 	cache.set("glimmer_amount", randi_range(45, 125))
 	add_child(cache)
 

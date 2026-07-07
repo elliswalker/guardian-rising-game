@@ -13,7 +13,7 @@ const COSTS: Dictionary = {
 const TIER_REQUIRED: Dictionary = {
 	JobType.REDJACK:    1,
 	JobType.SWEEPERBOT: 2,
-	JobType.BUILDER:    1,
+	JobType.BUILDER:    0,
 }
 const LABELS: Dictionary = {
 	JobType.REDJACK:    "Redjack",
@@ -27,12 +27,12 @@ const COLORS: Dictionary = {
 }
 
 @onready var _marker: Sprite2D = $Marker
-@onready var _icon: Sprite2D = $Icon
 
-const ICONS: Dictionary = {
-	JobType.REDJACK:    preload("res://assets/sprites/structures/icon_gun.png"),
-	JobType.SWEEPERBOT: preload("res://assets/sprites/structures/icon_broom.png"),
-	JobType.BUILDER:    preload("res://assets/sprites/structures/icon_hammer.png"),
+# PixelLab sign states (#50): the hanging plank carries the trade icon
+const SIGNS: Dictionary = {
+	JobType.REDJACK:    preload("res://assets/sprites/structures/pro_jobpost_gun.png"),
+	JobType.SWEEPERBOT: preload("res://assets/sprites/structures/pro_jobpost_broom.png"),
+	JobType.BUILDER:    preload("res://assets/sprites/structures/pro_jobpost_hammer.png"),
 }
 @onready var _label: Label = $Label
 
@@ -41,9 +41,9 @@ var _player_inside: bool = false
 func _ready() -> void:
 	add_to_group("job_posts")
 	collision_mask = 8
-	_marker.self_modulate = COLORS[job_type]
-	if _icon:
-		_icon.texture = ICONS[job_type]
+	_marker.texture = SIGNS[job_type]
+	# soft trade tint keeps at-a-glance identity without drowning the art
+	_marker.self_modulate = Color.WHITE.lerp(COLORS[job_type], 0.3)
 	_label.text = LABELS[job_type].to_upper()
 	_label.visible = not GameState.minimal_ui
 	body_entered.connect(_on_body_entered)

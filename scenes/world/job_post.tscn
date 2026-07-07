@@ -16,10 +16,6 @@ scale = Vector2(0.4667, 0.4667)
 offset = Vector2(-26, -60)
 texture = ExtResource("2")
 
-[node name="Icon" type="Sprite2D" parent="."]
-position = Vector2(6, -11)
-texture_filter = 1
-
 [node name="Label" type="Label" parent="."]
 offset_left = -28.0
 offset_top = -36.0

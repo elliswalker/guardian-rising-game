@@ -17,7 +17,7 @@ offset_bottom = 8.0
 color = Color(0.3, 0.85, 1.0, 0.0)
 
 [node name="Hull" type="Sprite2D" parent="."]
-position = Vector2(0, -25.22)
+position = Vector2(0, -19.2)
 scale = Vector2(0.5625, 0.5625)
 texture = ExtResource("2")
 texture_filter = 1

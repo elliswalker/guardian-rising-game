@@ -17,8 +17,8 @@ const COLOR_DAMAGED := Color(1.0, 0.5, 0.5, 1.0)
 const COLOR_HIT     := Color(1.0,  0.5,  1.0,  1.0)
 
 @onready var _sprite:       CanvasItem = $ServitorSprite
-@onready var _tether_ring:  ColorRect = $TetherRing
-@onready var _glow:         ColorRect = $Glow
+@onready var _tether_ring:  TextureRect = $TetherRing
+@onready var _glow:         TextureRect = $Glow
 
 var _hp: int = HP_MAX
 var _is_dying: bool = false

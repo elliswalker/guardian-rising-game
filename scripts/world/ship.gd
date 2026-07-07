@@ -20,12 +20,15 @@ const STAGE_HULL_COLORS: Array[Color] = [
 # Crash arc (#50): the wreck is PULLED OUT of the dirt, then rebuilt —
 # the Kingdom repair feel. Stage 0-1 buried, 2 pulled level, 3 ready.
 const TEX_WRECK  := preload("res://assets/sprites/structures/pro_ship_wreck.png")
-const TEX_PULLED := preload("res://assets/sprites/structures/pro_ship_pulled.png")
+const TEX_SCAFFOLD := preload("res://assets/sprites/structures/pro_ship_scaffold.png")
 const TEX_READY  := preload("res://assets/sprites/structures/pro_ship.png")
+# how deep the hull sits per stage — dug out of the dirt as repair goes
+const STAGE_SINK: Array[float] = [5.0, 3.0, 0.0, -2.0]
 @onready var _engine: ColorRect = $Engine
 @onready var _glow:   ColorRect = $Glow
 
 var _stage: int = 0
+var _hull_base_y: float = 0.0
 var _build_progress: int = 0
 var _stage_commissioned: bool = false
 var _stage_complete: bool = false   # one-frame flag so builder detaches cleanly
@@ -90,11 +93,7 @@ func is_complete() -> bool:
 
 func _advance_stage() -> void:
 	_stage = mini(_stage + 1, 3)
-	# stage 2: the hull is hauled level out of the dirt
 	if _stage == 2:
-		var pull: Tween = create_tween()
-		pull.tween_property(_hull, "position:y", _hull.position.y - 4.0, 0.8) \
-			.set_ease(Tween.EASE_OUT)
 		Sound.play("thunk", 0.0, 0.6)
 	if _stage >= 3:
 		# the wreck becomes this planet's landing pad — future visits land clean
@@ -111,9 +110,12 @@ func _update_visual() -> void:
 	if _stage <= 1:
 		_hull.texture = TEX_WRECK
 	elif _stage == 2:
-		_hull.texture = TEX_PULLED
+		_hull.texture = TEX_SCAFFOLD
 	else:
 		_hull.texture = TEX_READY
+	if _hull_base_y == 0.0:
+		_hull_base_y = _hull.position.y
+	_hull.position.y = _hull_base_y + STAGE_SINK[_stage]
 	_hull.modulate = STAGE_HULL_COLORS[_stage]
 	var glow_alpha: float = float(_stage) / 3.0 * 0.55
 	_glow.modulate.a = glow_alpha

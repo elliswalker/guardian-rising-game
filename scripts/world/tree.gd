@@ -59,10 +59,11 @@ func chop() -> bool:
 	return false
 
 func _update_visual() -> void:
+	# Pro foliage is baked-color art (#49) — the old green tint made it neon.
+	# Tint only signals state now: darkens as HP drops, warms when marked.
 	var t: float = float(_hp) / float(HP_MAX)
-	var fol: Color = Color(0.18 + t * 0.15, 0.48 + t * 0.22, 0.12, 1.0)
+	var fol: Color = Color(0.72 + t * 0.28, 0.72 + t * 0.28, 0.72 + t * 0.28, 1.0)
 	if _commissioned:
-		# marked for chopping — brighter, yellow-shifted
-		fol = Color(minf(fol.r * 1.8, 1.0), minf(fol.g * 1.5, 1.0), fol.b * 0.8, 1.0)
+		fol = Color(1.0, 0.85, 0.55, 1.0)  # marked for chopping — warm flag
 	_foliage.modulate = fol
 	_trunk.modulate = Color(0.35 - (1.0 - t) * 0.12, 0.22 - (1.0 - t) * 0.05, 0.10, 1.0)

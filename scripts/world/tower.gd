@@ -45,6 +45,9 @@ func _ready() -> void:
 		zone.body_entered.connect(_on_body_entered)
 		zone.body_exited.connect(_on_body_exited)
 	GameState.day_started.connect(_on_day_started)
+	# turret points away from the camp toward its front (#49 critique);
+	# deferred so the controller has set encampment_x first
+	_face_front.call_deferred()
 
 # Flare Tower: draws a new dormant frame in from the wastes each dawn
 func _on_day_started(_day: int) -> void:
@@ -59,6 +62,10 @@ func _on_day_started(_day: int) -> void:
 	var frame: CharacterBody2D = FRAME_SCENE.instantiate() as CharacterBody2D
 	frame.global_position = global_position + Vector2(randf_range(20.0, 40.0), -12.0)
 	get_parent().call_deferred("add_child", frame)
+
+func _face_front() -> void:
+	if _sprite:
+		_sprite.flip_h = global_position.x < GameState.encampment_x
 
 func convert_special(kind: String) -> void:
 	special = kind

@@ -27,6 +27,13 @@ const COLORS: Dictionary = {
 }
 
 @onready var _marker: Sprite2D = $Marker
+@onready var _icon: Sprite2D = $Icon
+
+const ICONS: Dictionary = {
+	JobType.REDJACK:    preload("res://assets/sprites/structures/icon_gun.png"),
+	JobType.SWEEPERBOT: preload("res://assets/sprites/structures/icon_broom.png"),
+	JobType.BUILDER:    preload("res://assets/sprites/structures/icon_hammer.png"),
+}
 @onready var _label: Label = $Label
 
 var _player_inside: bool = false
@@ -35,6 +42,8 @@ func _ready() -> void:
 	add_to_group("job_posts")
 	collision_mask = 8
 	_marker.self_modulate = COLORS[job_type]
+	if _icon:
+		_icon.texture = ICONS[job_type]
 	_label.text = LABELS[job_type].to_upper()
 	_label.visible = not GameState.minimal_ui
 	body_entered.connect(_on_body_entered)

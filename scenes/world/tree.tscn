@@ -8,7 +8,7 @@
 script = ExtResource("1")
 
 [node name="Foliage" type="Sprite2D" parent="."]
-position = Vector2(0, -26.0)
+position = Vector2(0, -23.5)
 scale = Vector2(0.5532, 0.5532)
 texture = ExtResource("2")
 texture_filter = 1

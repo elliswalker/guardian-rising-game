@@ -27,6 +27,8 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	_glow.color = Color(ember_color.r, ember_color.g, ember_color.b, 0.3)
+	if _hollow:
+		_hollow.self_modulate = Color.WHITE.lerp(ember_color, 0.45)
 	_ghost_body.color = ember_color.lightened(0.3)
 	if _bonded():
 		_ghost_body.visible = false

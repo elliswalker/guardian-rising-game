@@ -10,10 +10,15 @@ size = Vector2(30, 30)
 script = ExtResource("1")
 
 [node name="Marker" type="Sprite2D" parent="."]
+position = Vector2(0, 2.5)
 centered = false
 scale = Vector2(0.4667, 0.4667)
 offset = Vector2(-26, -60)
 texture = ExtResource("2")
+
+[node name="Icon" type="Sprite2D" parent="."]
+position = Vector2(0, -17)
+texture_filter = 1
 
 [node name="Label" type="Label" parent="."]
 offset_left = -28.0

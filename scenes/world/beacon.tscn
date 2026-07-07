@@ -10,6 +10,7 @@ size = Vector2(26, 34)
 script = ExtResource("1")
 
 [node name="Mast" type="Sprite2D" parent="."]
+position = Vector2(0, 2.5)
 centered = false
 scale = Vector2(0.472, 0.472)
 offset = Vector2(-20, -89)

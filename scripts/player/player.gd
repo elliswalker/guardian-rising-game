@@ -49,7 +49,9 @@ var _speed: float:
 			base *= 0.45  # Hive blight — wading through the dark
 		return base
 
-# Hive Wizard blight — slows the Speaker while inside the field
+# Hive Wizard blight — slows the Guardian while inside the field
+# (Identity, per Ellis 2026-07-06: the GUARDIAN rides; the Speaker leads
+# the camp as a stationary NPC at the encampment.)
 func apply_blight(duration: float) -> void:
 	_blight_timer = maxf(_blight_timer, duration)
 	if guardian_sprite:

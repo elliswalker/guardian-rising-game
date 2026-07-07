@@ -25,6 +25,10 @@ const TOWER_TEXTURES: Array[Texture2D] = [
 ]
 
 @onready var _tower_sprite: Sprite2D = $TowerSprite
+# Kingdom buildup (#49 critique): the camp GROWS — fire pit alone at T1,
+# a tent joins at T2, the cabin at T3; the watch tower climbs throughout.
+@onready var _tent: Sprite2D = get_node_or_null("Tent")
+@onready var _cabin: Sprite2D = get_node_or_null("Cabin")
 @onready var _label: Label = $Label
 
 var _player_inside: bool = false
@@ -79,6 +83,10 @@ func _update_visual() -> void:
 		_tower_sprite.offset = Vector2(-tex.get_width() * 0.5, -float(tex.get_height()))
 		var t: float = float(tier - 1) / 3.0
 		_tower_sprite.modulate = Color(0.52 + t * 0.22, 0.55 + t * 0.24, 0.60 + t * 0.30, 1.0)
+	if _tent:
+		_tent.visible = tier >= 2
+	if _cabin:
+		_cabin.visible = tier >= 3
 	if _label:
 		_label.text = "ENCAMPMENT  T%d" % tier
 		_label.visible = not GameState.minimal_ui

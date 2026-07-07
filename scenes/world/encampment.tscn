@@ -16,7 +16,7 @@ script = ExtResource("1")
 
 [node name="Tent" type="Sprite2D" parent="."]
 position = Vector2(0, -20.5)
-scale = Vector2(1.0952, 1.0952)
+scale = Vector2(0.7188, 0.7188)
 texture = ExtResource("2")
 
 [node name="Shack" type="Sprite2D" parent="."]
@@ -39,6 +39,12 @@ texture = ExtResource("7")
 position = Vector2(38, -13.0)
 scale = Vector2(0.6522, 0.6522)
 texture = ExtResource("3")
+
+[node name="Rubble" type="Sprite2D" parent="."]
+position = Vector2(0, -5.5)
+scale = Vector2(0.3902, 0.3902)
+modulate = Color(0.72, 0.68, 0.66, 1)
+texture = ExtResource("7")
 
 [node name="FirePit" type="Sprite2D" parent="."]
 position = Vector2(0, -0.55)

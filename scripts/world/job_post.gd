@@ -42,8 +42,8 @@ func _ready() -> void:
 	add_to_group("job_posts")
 	collision_mask = 8
 	_marker.texture = SIGNS[job_type]
-	# soft trade tint keeps at-a-glance identity without drowning the art
-	_marker.self_modulate = Color.WHITE.lerp(COLORS[job_type], 0.3)
+	# strong trade tint — red redjack, yellow sweeper, blue builder
+	_marker.self_modulate = Color.WHITE.lerp(COLORS[job_type], 0.6)
 	_label.text = LABELS[job_type].to_upper()
 	_label.visible = not GameState.minimal_ui
 	body_entered.connect(_on_body_entered)

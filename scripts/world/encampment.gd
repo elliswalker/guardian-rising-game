@@ -19,13 +19,13 @@ const TIER_UNLOCKS: Dictionary = {
 	4: "The Charge",
 }
 const MAX_TIER := 4
-const COLOR_SMOLDER := Color(0.42, 0.40, 0.38, 0.9)
 
 @onready var _tent: Sprite2D = get_node_or_null("Tent")
 @onready var _shack: Sprite2D = get_node_or_null("Shack")
 @onready var _brick: Sprite2D = get_node_or_null("Brick")
 @onready var _fire: Sprite2D = get_node_or_null("FirePit")
 @onready var _mound: Sprite2D = get_node_or_null("Mound")
+@onready var _rubble: Sprite2D = get_node_or_null("Rubble")
 @onready var _label: Label = $Label
 
 var _player_inside: bool = false
@@ -101,8 +101,10 @@ func _finish_tier() -> void:
 func _update_visual() -> void:
 	var tier: int = GameState.camp_tier()
 	if _fire:
-		# T0: cold ash — the fire only smolders until builders light it
-		_fire.modulate = COLOR_SMOLDER if tier <= 0 else Color.WHITE
+		# T0 is a collapsed ruin — the fire doesn't exist until it's BUILT
+		_fire.visible = tier >= 1
+	if _rubble:
+		_rubble.visible = tier <= 0 and not _commissioned
 	if _tent:
 		_tent.visible = tier == 2
 	if _shack:

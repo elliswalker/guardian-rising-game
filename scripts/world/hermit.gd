@@ -27,10 +27,15 @@ const CONVERSIONS: Dictionary = {
 
 @onready var _body: Sprite2D = $Body
 
-# specialist liveries on the frame chassis — gold gunsmith, SIVA red
+# specialist liveries on the frame chassis — gold gunsmith, SIVA red;
+# and the tool matches the trade: ADU-8 shoulders a rifle
 const KIND_TINTS: Dictionary = {
 	"gunsmith": Color(0.95, 0.78, 0.35, 1.0),
 	"tinker": Color(0.90, 0.30, 0.25, 1.0),
+}
+const KIND_TEX: Dictionary = {
+	"gunsmith": preload("res://assets/sprites/structures/frame_gun_right.png"),
+	"tinker": preload("res://assets/sprites/structures/frame_hammer_right.png"),
 }
 
 var _carried: bool = false
@@ -41,6 +46,8 @@ func _ready() -> void:
 	add_to_group("hermits")
 	if _body:
 		_body.modulate = KIND_TINTS.get(kind, Color.WHITE)
+		if KIND_TEX.has(kind):
+			_body.texture = KIND_TEX[kind]
 	GameState.dusk_triggered.connect(func(_d: int) -> void:
 		if not _carried and not _settled:
 			modulate.a = 0.25)  # hides in the wreckage at night

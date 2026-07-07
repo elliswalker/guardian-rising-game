@@ -21,7 +21,7 @@ const STAGE_HULL_COLORS: Array[Color] = [
 # the Kingdom repair feel. Stage 0-1 buried, 2 pulled level, 3 ready.
 const TEX_WRECK  := preload("res://assets/sprites/structures/pro_ship_wreck.png")
 const TEX_SCAFFOLD := preload("res://assets/sprites/structures/pro_ship_scaffold.png")
-const TEX_READY  := preload("res://assets/sprites/structures/pro_ship.png")
+const TEX_READY  := preload("res://assets/sprites/structures/pro_ship_fixed.png")
 # how deep the hull sits per stage — dug out of the dirt as repair goes
 const STAGE_SINK: Array[float] = [5.0, 3.0, 0.0, -2.0]
 @onready var _engine: ColorRect = $Engine

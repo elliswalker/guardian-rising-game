@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="SpriteFrames" path="res://assets/backgrounds/_water/earth_water_frames.tres" id="1"]
+
+[node name="AnimatedWater" type="AnimatedSprite2D"]
+sprite_frames = ExtResource("1")
+animation = &"flow"
+autoplay = "flow"
+frame_progress = 0.0
+centered = false
+texture_filter = 1

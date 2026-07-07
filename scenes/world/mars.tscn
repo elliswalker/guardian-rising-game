@@ -1,4 +1,5 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
+[ext_resource type="Texture2D" path="res://assets/tilesets/mars/ground_fill.png" id="100"]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/world/sun_disc.png" id="90"]
 [ext_resource type="Texture2D" path="res://assets/sprites/structures/pro_cliff_tan.png" id="95"]
@@ -42,11 +43,14 @@ position = Vector2(0, 150)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
 shape = SubResource("WorldBoundaryShape2D_1")
 
-[node name="GroundVisual" type="ColorRect" parent="Ground"]
+[node name="GroundVisual" type="TextureRect" parent="Ground"]
 offset_left = -1500.0
 offset_right = 1500.0
 offset_bottom = 300.0
-color = Color(0.30, 0.16, 0.10, 1)
+texture = ExtResource("100")
+stretch_mode = 1
+texture_repeat = 2
+texture_filter = 1
 
 [node name="SkyUI" type="CanvasLayer" parent="."]
 layer = -1

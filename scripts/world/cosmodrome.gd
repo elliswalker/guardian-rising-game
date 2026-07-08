@@ -274,32 +274,9 @@ func _spawn_trees() -> void:
 
 # The land ends in liquid, not a cliff (#25)
 func _spawn_shoreline() -> void:
-	var water_n1420 := ColorRect.new()
-	water_n1420.color = Color(0.14, 0.18, 0.24, 1.0)
-	water_n1420.position = Vector2(-1420.0, 152.0)
-	water_n1420.size = Vector2(165.0, 260.0)
-	add_child(water_n1420)
-	var surf_n1420 := ColorRect.new()
-	surf_n1420.color = Color(0.30, 0.38, 0.48, 0.9)
-	surf_n1420.position = Vector2(-1420.0, 152.0)
-	surf_n1420.size = Vector2(165.0, 2.0)
-	add_child(surf_n1420)
-	var tw_n1420: Tween = surf_n1420.create_tween().set_loops()
-	tw_n1420.tween_property(surf_n1420, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
-	tw_n1420.tween_property(surf_n1420, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
-	var water_1255 := ColorRect.new()
-	water_1255.color = Color(0.14, 0.18, 0.24, 1.0)
-	water_1255.position = Vector2(1255.0, 152.0)
-	water_1255.size = Vector2(165.0, 260.0)
-	add_child(water_1255)
-	var surf_1255 := ColorRect.new()
-	surf_1255.color = Color(0.30, 0.38, 0.48, 0.9)
-	surf_1255.position = Vector2(1255.0, 152.0)
-	surf_1255.size = Vector2(165.0, 2.0)
-	add_child(surf_1255)
-	var tw_1255: Tween = surf_1255.create_tween().set_loops()
-	tw_1255.tween_property(surf_1255, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
-	tw_1255.tween_property(surf_1255, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
+	for x0: float in [-1420.0, 1255.0]:
+		Shoreline.build(self, x0, 165.0,
+			Color(0.09, 0.13, 0.19, 1.0), Color(0.52, 0.62, 0.72, 1.0))
 
 func _spawn_world_objects() -> void:
 	# The ship you landed in — leave whenever you like

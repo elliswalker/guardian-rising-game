@@ -369,19 +369,8 @@ func _disgorge_pod(pod_x: float, count: int) -> void:
 # The land ends in liquid at BOTH ends now (#25, #30)
 func _spawn_shoreline() -> void:
 	for x0: float in [-1420.0, 1255.0]:
-		var water := ColorRect.new()
-		water.color = Color(0.30, 0.17, 0.11, 1.0)
-		water.position = Vector2(x0, 152.0)
-		water.size = Vector2(165.0, 260.0)
-		add_child(water)
-		var surf := ColorRect.new()
-		surf.color = Color(0.50, 0.31, 0.19, 0.9)
-		surf.position = Vector2(x0, 152.0)
-		surf.size = Vector2(165.0, 2.0)
-		add_child(surf)
-		var tw: Tween = surf.create_tween().set_loops()
-		tw.tween_property(surf, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
-		tw.tween_property(surf, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
+		Shoreline.build(self, x0, 165.0,
+			Color(0.14, 0.07, 0.04, 1.0), Color(0.80, 0.54, 0.32, 1.0))
 
 func _spawn_world_objects() -> void:
 	var ship: Node2D = SHIP_SCENE.instantiate() as Node2D

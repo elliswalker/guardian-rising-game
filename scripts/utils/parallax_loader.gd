@@ -24,7 +24,7 @@ const HORIZON_Y := 155.0    # layer bottoms sit here (ground line is 150)
 const TARGET_HEIGHT := 380.0  # world-units of sky the nearest layer should cover
 const GROUP := "parallax_art"
 const FG_SCALE := 2.0       # fg strips are authored at half-res like the layers
-const FG_BOTTOM_Y := 188.0  # fg strip bottoms sit below the ground line
+const FG_BOTTOM_Y := 168.0  # fg ground cover hugs the actual ground line
 
 static func build(parallax_bg: ParallaxBackground, planet: String) -> void:
 	var paths: Array[String] = _find_layers(planet, "layer_")
@@ -34,7 +34,7 @@ static func build(parallax_bg: ParallaxBackground, planet: String) -> void:
 			continue
 		var t: float = float(i + 1) / float(paths.size() + 1)  # 0=celestial, 1=treeline
 		var layer := ParallaxLayer.new()
-		layer.motion_scale = Vector2(lerpf(0.08, 0.65, t), lerpf(0.02, 0.12, t))
+		layer.motion_scale = Vector2(lerpf(0.08, 0.78, t), lerpf(0.02, 0.12, t))
 		var h: float = float(texture.get_height())
 		var w: float = float(texture.get_width())
 		# integer scale for crisp pixels where possible (320x180-class packs → 2x)
@@ -69,7 +69,7 @@ static func _build_foreground(parallax_bg: ParallaxBackground, planet: String) -
 		if not texture:
 			continue
 		var layer := ParallaxLayer.new()
-		layer.motion_scale = Vector2(1.3 + 0.15 * float(i), 1.0)
+		layer.motion_scale = Vector2(1.12 + 0.08 * float(i), 1.0)
 		var h: float = float(texture.get_height())
 		var w: float = float(texture.get_width())
 		layer.motion_mirroring = Vector2(w * FG_SCALE, 0.0)

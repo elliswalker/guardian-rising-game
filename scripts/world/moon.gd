@@ -294,19 +294,8 @@ func _on_portal_broken(_faction: String) -> void:
 # The land ends in liquid at BOTH ends now (#25, #30)
 func _spawn_shoreline() -> void:
 	for x0: float in [-1420.0, 1255.0]:
-		var water := ColorRect.new()
-		water.color = Color(0.04, 0.04, 0.10, 1.0)
-		water.position = Vector2(x0, 152.0)
-		water.size = Vector2(165.0, 260.0)
-		add_child(water)
-		var surf := ColorRect.new()
-		surf.color = Color(0.14, 0.14, 0.26, 0.9)
-		surf.position = Vector2(x0, 152.0)
-		surf.size = Vector2(165.0, 2.0)
-		add_child(surf)
-		var tw: Tween = surf.create_tween().set_loops()
-		tw.tween_property(surf, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
-		tw.tween_property(surf, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
+		Shoreline.build(self, x0, 165.0,
+			Color(0.02, 0.03, 0.08, 1.0), Color(0.35, 0.48, 0.62, 1.0))
 
 func _spawn_world_objects() -> void:
 	var ship: Node2D = SHIP_SCENE.instantiate() as Node2D

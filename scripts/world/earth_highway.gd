@@ -375,19 +375,8 @@ func _spawn_trees() -> void:
 
 # The land ends in liquid, not a cliff (#25)
 func _spawn_shoreline() -> void:
-	var water_n720 := ColorRect.new()
-	water_n720.color = Color(0.16, 0.26, 0.36, 1.0)
-	water_n720.position = Vector2(-720.0, 152.0)
-	water_n720.size = Vector2(335.0, 260.0)
-	add_child(water_n720)
-	var surf_n720 := ColorRect.new()
-	surf_n720.color = Color(0.36, 0.50, 0.62, 0.9)
-	surf_n720.position = Vector2(-720.0, 152.0)
-	surf_n720.size = Vector2(335.0, 2.0)
-	add_child(surf_n720)
-	var tw_n720: Tween = surf_n720.create_tween().set_loops()
-	tw_n720.tween_property(surf_n720, "modulate:a", 0.55, 1.7).set_ease(Tween.EASE_IN_OUT)
-	tw_n720.tween_property(surf_n720, "modulate:a", 1.0, 1.7).set_ease(Tween.EASE_IN_OUT)
+	Shoreline.build(self, -720.0, 335.0,
+		Color(0.09, 0.16, 0.25, 1.0), Color(0.55, 0.70, 0.82, 1.0))
 
 func _spawn_world_objects() -> void:
 	# Ship sits wrecked to the LEFT of the encampment — player's exit from Earth.
